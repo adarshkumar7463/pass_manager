@@ -3,9 +3,12 @@
 {% block page_title %}Template: {{ template.name }}{% endblock %}
 
 {% block header_actions %}
-<button onclick="toggleStatus()" class="btn-ghost-sm" id="toggle-btn">
+<button onclick="toggleStatus()" class="btn-ghost-sm" id="toggle-btn" style="margin-right: 10px;">
   {% if template.is_active %}<i class="fas fa-pause"></i> Deactivate{% else %}<i class="fas fa-play"></i> Activate{% endif %}
 </button>
+<a href="{% url 'passes:template_delete' template.id %}" class="btn-danger-sm" onclick="return confirm('Are you sure you want to delete this template and all its passes?')">
+  <i class="fas fa-trash"></i> Delete Template
+</a>
 {% endblock %}
 
 {% block content %}
@@ -20,11 +23,7 @@
       </span>
     </div>
     <div class="qr-display">
-      {% if template.qr_code %}
-      <img src="{{ template.qr_code.url }}" alt="QR Code" class="qr-image">
-      {% else %}
-      <div class="qr-placeholder"><i class="fas fa-qrcode"></i><p>QR not generated</p></div>
-      {% endif %}
+      <img src="https://api.qrserver.com/v1/create-qr-code/?data={{ qr_url|urlencode }}&size=300x300" alt="QR Code" class="qr-image">
     </div>
     <div class="qr-url">
       <code>{{ qr_url }}</code>

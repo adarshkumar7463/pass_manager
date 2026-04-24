@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin-panel/templates/create/', views.template_create, name='template_create'),
     path('admin-panel/templates/<int:pk>/', views.template_detail, name='template_detail'),
     path('admin-panel/templates/<int:pk>/toggle/', views.toggle_template, name='toggle_template'),
+    path('admin-panel/templates/<int:pk>/delete/', views.template_delete, name='template_delete'),
     path('admin-panel/passes/', views.passes_list, name='passes_list'),
     path('admin-panel/validate/', views.validate_pass_page, name='validate'),
     path('admin-panel/validate/lookup/', views.validate_pass_lookup, name='validate_lookup'),

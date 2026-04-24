@@ -121,6 +121,12 @@
           <span><i class="fas fa-check"></i> {{ ls.done }} done</span>
           <span><i class="fas fa-id-card"></i> {{ ls.total }} total</span>
         </div>
+        <div class="location-actions">
+          <a href="{% url 'locations:edit' ls.location.id %}" class="btn-ghost-sm" title="Edit"><i class="fas fa-edit"></i></a>
+          <a href="{% url 'locations:delete' ls.location.id %}" class="btn-danger-sm" title="Delete" onclick="return confirm('Are you sure? This will delete all templates and passes for this location!')">
+            <i class="fas fa-trash"></i>
+          </a>
+        </div>
       </div>
     </div>
     {% endfor %}

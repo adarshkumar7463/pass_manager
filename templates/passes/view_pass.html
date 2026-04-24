@@ -114,11 +114,7 @@
           </div>
           <div class="loc-qr-name">{{ visit.location.name }}</div>
           <div class="loc-qr-image-wrap">
-            {% if visit.qr_code %}
-            <img src="{{ visit.qr_code.url }}" alt="QR" class="loc-qr-img" crossorigin="anonymous">
-            {% else %}
-            <div class="loc-qr-missing" style="font-size: 20px;"><i class="fas fa-qrcode"></i></div>
-            {% endif %}
+            <img src="https://api.qrserver.com/v1/create-qr-code/?data={{ request.scheme }}://{{ request.get_host }}/scan/{{ pass_obj.unique_id }}/{{ visit.location.prefix }}/&size=150x150" alt="QR" class="loc-qr-img" crossorigin="anonymous">
             {% if visit.status == 'DONE' %}
             <div class="loc-qr-overlay"><i class="fas fa-check-circle"></i></div>
             {% endif %}
@@ -132,9 +128,7 @@
           </div>
           <div class="loc-qr-name">{{ pass_obj.location.name }}</div>
           <div class="loc-qr-image-wrap">
-            {% if pass_obj.pass_qr %}
-            <img src="{{ pass_obj.pass_qr.url }}" alt="QR" class="loc-qr-img" crossorigin="anonymous">
-            {% endif %}
+            <img src="https://api.qrserver.com/v1/create-qr-code/?data={{ request.scheme }}://{{ request.get_host }}/pass/{{ pass_obj.unique_id }}/&size=150x150" alt="QR" class="loc-qr-img" crossorigin="anonymous">
           </div>
         </div>
         {% endfor %}

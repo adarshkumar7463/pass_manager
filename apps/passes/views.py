@@ -434,6 +434,21 @@ def toggle_template(request, pk):
 
 
 @login_required
+def template_delete(request, pk):
+    template = get_object_or_404(PassTemplate, pk=pk)
+    if not request.user.is_superuser:
+        allowed = request.user.admin_locations.filter(location=template.location).exists()
+        if not allowed:
+            messages.error(request, 'Access denied.')
+            return redirect('passes:template_list')
+            
+    name = template.name
+    template.delete()
+    messages.success(request, f'Template "{name}" deleted.')
+    return redirect('passes:template_list')
+
+
+@login_required
 def passes_list(request):
     from apps.locations.models import Location
     if request.user.is_superuser:

@@ -69,3 +69,16 @@ def location_edit(request, pk):
         return redirect('passes:dashboard')
 
     return render(request, 'admin_panel/location_form.html', {'location': location})
+
+
+@login_required
+def location_delete(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'Only superadmins can delete locations.')
+        return redirect('passes:dashboard')
+    
+    location = get_object_or_404(Location, pk=pk)
+    name = location.name
+    location.delete()
+    messages.success(request, f'Location "{name}" deleted.')
+    return redirect('passes:dashboard')

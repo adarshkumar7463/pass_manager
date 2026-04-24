@@ -530,6 +530,14 @@ button {
   margin-right: 4px;
 }
 
+.location-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
 /* ── TABLE ── */
 .table-card {
   background: var(--bg-card);
@@ -685,6 +693,25 @@ button {
 .btn-ghost-sm:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.btn-danger-sm {
+  background: var(--red-bg);
+  color: var(--red);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 23, 68, 0.2);
+  transition: all 0.2s;
+  font-weight: 600;
+}
+
+.btn-danger-sm:hover {
+  background: var(--red);
+  color: #fff;
 }
 
 .btn-success {

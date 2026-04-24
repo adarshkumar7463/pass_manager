@@ -6,5 +6,6 @@ app_name = 'locations'
 urlpatterns = [
     path('', views.location_list, name='list'),
     path('create/', views.location_create, name='create'),
-    path('<int:pk>/edit/', views.location_edit, name='edit'),
+    path('edit/<int:pk>/', views.location_edit, name='edit'),
+    path('delete/<int:pk>/', views.location_delete, name='delete'),
 ]
