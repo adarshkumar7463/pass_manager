@@ -143,25 +143,38 @@ async function startScanner() {
         const code = jsQR(img.data, img.width, img.height);
         if (code) {
           stopScanner();
-          // Improved URL matching
+          // Robust URL matching
           const urlString = code.data;
+          console.log("Scanned QR Data:", urlString);
           
-          // Match visit: /scan/COMBO-001/TT/
-          if (urlString.includes('/scan/')) {
-            const parts = urlString.split('/scan/')[1].split('/');
-            if (parts.length >= 2) {
-              window.location.href = `/scan/${parts[0]}/${parts[1]}/`;
-              return;
+          try {
+            // Check for scan visit URL: /scan/ID/PREFIX/
+            if (urlString.includes('/scan/')) {
+              const afterScan = urlString.split('/scan/')[1];
+              const parts = afterScan.split('/').filter(p => p.length > 0);
+              if (parts.length >= 2) {
+                window.location.href = `/scan/${parts[0]}/${parts[1]}/`;
+                return;
+              }
             }
-          }
 
-          // Match pass: /pass/COMBO-001/
-          if (urlString.includes('/pass/')) {
-            const passId = urlString.split('/pass/')[1].split('/')[0];
-            if (passId) {
-              lookupPass(passId);
+            // Check for direct pass view URL: /pass/ID/
+            if (urlString.includes('/pass/')) {
+              const afterPass = urlString.split('/pass/')[1];
+              const passId = afterPass.split('/').filter(p => p.length > 0)[0];
+              if (passId) {
+                lookupPass(passId);
+                return;
+              }
+            }
+
+            // If it's just a raw ID (fallback)
+            if (urlString.length >= 8 && !urlString.includes('://')) {
+              lookupPass(urlString.toUpperCase());
               return;
             }
+          } catch (err) {
+            console.error("Scanner Error:", err);
           }
           
           showError('Unknown QR code format');

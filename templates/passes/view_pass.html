@@ -53,12 +53,12 @@
       <i class="fas fa-ticket-alt"></i> COMBO PASS
     </div>
 
-    <div class="pass-sidebar-middle">
-      <div class="pass-template-name">{{ pass_obj.template.name|upper }}</div>
+    <div class="pass-sidebar-middle" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 10px;">
+      <div class="pass-template-name" style="font-size: 24px; line-height: 1.1; margin-bottom: 15px; width: 100%; word-wrap: break-word;">{{ pass_obj.template.name|upper }}</div>
       {% if pass_obj.template.discount_percent > 0 %}
-      <div class="pass-discount-ad">
-        <div class="ad-badge">SPECIAL OFFER</div>
-        <div class="ad-value">{{ pass_obj.template.discount_percent|floatformat:0 }}% OFF</div>
+      <div class="pass-discount-ad" style="margin: 0 auto;">
+        <div class="ad-badge" style="font-size: 9px; letter-spacing: 1px;">SPECIAL OFFER</div>
+        <div class="ad-value" style="font-size: 20px; color: var(--green);">{{ pass_obj.template.discount_percent|floatformat:0 }}% OFF</div>
       </div>
       {% endif %}
     </div>
@@ -119,11 +119,16 @@
           COMPLETE</div>
       </div>
 
-      <!-- Payment note -->
+      <!-- Payment note (Box Design) -->
       {% if pass_obj.template.payment_note %}
-      <div class="pass-payment-note" style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px; font-size: 11px; line-height: 1.4; border-left: 3px solid var(--pub-accent);">
-        <i class="fas fa-info-circle"></i>
-        {{ pass_obj.template.payment_note }}
+      <div class="pass-payment-info-box" style="margin-top: 25px; padding: 12px 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #166534; font-size: 12px; font-weight: 500;">
+        <div style="width: 24px; height: 24px; background: #22c55e; border-radius: 50%; display: grid; place-items: center; color: #fff; flex-shrink: 0;">
+          <i class="fas fa-info" style="font-size: 10px;"></i>
+        </div>
+        <div style="flex: 1; line-height: 1.4;">
+          <span style="font-size: 10px; display: block; opacity: 0.8; margin-bottom: 2px;">💳 PAYMENT NOTE</span>
+          {{ pass_obj.template.payment_note }}
+        </div>
       </div>
       {% endif %}
     </div>
@@ -161,6 +166,8 @@
           <div class="loc-qr-image-wrap">
             <img src="https://api.qrserver.com/v1/create-qr-code/?data={{ request.scheme }}://{{ request.get_host }}/pass/{{ pass_obj.unique_id }}/&size=150x150" alt="QR" class="loc-qr-img" crossorigin="anonymous">
           </div>
+        </div>
+        {% endfor %}
         </div>
         {% endfor %}
       </div>
