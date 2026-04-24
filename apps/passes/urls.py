@@ -7,7 +7,7 @@ urlpatterns = [
     # Public
     path('', views.admin_dashboard, name='home'),
     path('generate-pass/<int:template_id>/', views.generate_pass_page, name='generate_pass'),
-    path('pass/<str:unique_id>/', views.view_pass, name='view_pass'),
+    path('pass/<path:unique_id>/', views.view_pass, name='view_pass'),
 
     # Admin
     path('admin-panel/', views.admin_dashboard, name='dashboard'),

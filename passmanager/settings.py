@@ -92,7 +92,7 @@ LOGOUT_REDIRECT_URL = '/admin-panel/login/'
 
 RATE_LIMIT_REQUESTS = int(os.environ.get('RATE_LIMIT_REQUESTS', '5'))
 RATE_LIMIT_WINDOW   = int(os.environ.get('RATE_LIMIT_WINDOW', '3600'))
-SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000').rstrip('/')
 
 SESSION_COOKIE_AGE = 86400
 SESSION_SAVE_EVERY_REQUEST = True
