@@ -37,7 +37,7 @@ class Command(BaseCommand):
         for i, (name, prefix, desc) in enumerate(LOCATIONS):
             loc, created = Location.objects.get_or_create(
                 prefix=prefix,
-                defaults={'name': name, 'slug': slugify(name), 'description': desc, 'order': i, 'is_active': True}
+                defaults={'name': name, 'slug': slugify(name), 'description': desc, 'is_active': True}
             )
             # Initialize counter for this location
             LocationPassCounter.objects.get_or_create(location=loc)
