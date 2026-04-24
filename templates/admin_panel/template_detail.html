@@ -29,11 +29,9 @@
       <code>{{ qr_url }}</code>
       <button onclick="copyUrl('{{ qr_url }}')" class="copy-btn"><i class="fas fa-copy"></i></button>
     </div>
-    {% if template.qr_code %}
-    <a href="{{ template.qr_code.url }}" download="qr_{{ template.id }}.png" class="btn-primary full-width">
-      <i class="fas fa-download"></i> Download QR Code
+    <a href="https://api.qrserver.com/v1/create-qr-code/?data={{ qr_url|urlencode }}&size=1000x1000" target="_blank" class="btn-primary full-width">
+      <i class="fas fa-external-link-alt"></i> Open High-Res QR
     </a>
-    {% endif %}
   </div>
 
   <!-- Info Card -->

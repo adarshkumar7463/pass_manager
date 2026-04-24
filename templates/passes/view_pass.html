@@ -3,12 +3,43 @@
 {% block title %}Combo Pass {{ pass_obj.unique_id }}{% endblock %}
 {% block body_class %}public-body{% endblock %}
 
-{% block extra_css %}
 <style>
   /* Ensure cross-origin images can be captured */
   .loc-qr-img { cross-origin: anonymous; }
+
+  /* Responsiveness for Pass Card */
+  @media (max-width: 768px) {
+    .pass-card.landscape-layout {
+      flex-direction: column !important;
+      height: auto !important;
+      width: 100% !important;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .pass-card-header {
+      width: 100% !important;
+      height: 80px !important;
+    }
+    .pass-header-text {
+      flex-direction: row !important;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+    .pass-main-content {
+      padding: 15px !important;
+    }
+    .pass-body-split {
+      flex-direction: column !important;
+    }
+    .pass-qr-side {
+      margin-top: 15px;
+      padding-left: 0 !important;
+      border-left: none !important;
+      border-top: 1px dashed var(--border);
+      padding-top: 15px;
+    }
+  }
 </style>
-{% endblock %}
 
 {% block body %}
 <div class="public-page landscape">
@@ -90,7 +121,7 @@
 
       <!-- Payment note -->
       {% if pass_obj.template.payment_note %}
-      <div class="pass-payment-note">
+      <div class="pass-payment-note" style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px; font-size: 11px; line-height: 1.4; border-left: 3px solid var(--pub-accent);">
         <i class="fas fa-info-circle"></i>
         {{ pass_obj.template.payment_note }}
       </div>

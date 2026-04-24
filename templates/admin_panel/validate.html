@@ -143,18 +143,25 @@ async function startScanner() {
         const code = jsQR(img.data, img.width, img.height);
         if (code) {
           stopScanner();
-          // Try to match visit URL: /scan/BTL-001/BTL/
-          const visitMatch = code.data.match(/\/scan\/([A-Z0-9-]+)\/([A-Z]+)\//i);
-          if (visitMatch) {
-            window.location.href = `/scan/${visitMatch[1]}/${visitMatch[2]}/`;
-            return;
+          // Improved URL matching
+          const urlString = code.data;
+          
+          // Match visit: /scan/COMBO-001/TT/
+          if (urlString.includes('/scan/')) {
+            const parts = urlString.split('/scan/')[1].split('/');
+            if (parts.length >= 2) {
+              window.location.href = `/scan/${parts[0]}/${parts[1]}/`;
+              return;
+            }
           }
 
-          // Try to match main pass URL: /pass/BTL-001/
-          const passMatch = code.data.match(/\/pass\/([A-Z0-9-]+)\/?/i);
-          if (passMatch) {
-            lookupPass(passMatch[1]);
-            return;
+          // Match pass: /pass/COMBO-001/
+          if (urlString.includes('/pass/')) {
+            const passId = urlString.split('/pass/')[1].split('/')[0];
+            if (passId) {
+              lookupPass(passId);
+              return;
+            }
           }
           
           showError('Unknown QR code format');
