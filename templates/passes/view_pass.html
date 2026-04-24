@@ -45,17 +45,19 @@
     color: #ffffff !important;
     margin-bottom: 15px !important;
     text-transform: uppercase !important;
-    width: 100% !important;
+    width: 200px !important; /* Fixed width for better fitting logic */
+    max-width: 200px !important;
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     hyphens: auto !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    text-align: center !important;
     min-height: 80px !important;
-    max-height: 120px !important;
+    max-height: 150px !important;
     overflow: hidden !important;
-    transition: font-size 0.2s ease !important;
+    transition: font-size 0.1s ease !important;
   }
 
   .pass-payment-info-box {
@@ -313,15 +315,28 @@
   function autoResizeText() {
     const el = document.querySelector('.pass-template-name');
     if (!el) return;
+    
     let fontSize = 26;
     el.style.fontSize = fontSize + 'px';
-    while ((el.scrollHeight > el.offsetHeight || el.scrollWidth > el.offsetWidth) && fontSize > 10) {
-      fontSize -= 1;
-      el.style.fontSize = fontSize + 'px';
+    el.style.lineHeight = "1.1";
+    
+    // Safety loop to shrink font until it fits both height and width perfectly
+    for (let i = 0; i < 20; i++) { // Max 20 iterations for performance
+      if ((el.scrollHeight > el.offsetHeight || el.scrollWidth > el.offsetWidth) && fontSize > 10) {
+        fontSize -= 1.5;
+        el.style.fontSize = fontSize + 'px';
+      } else {
+        break;
+      }
     }
   }
+  
+  // High-frequency triggers to ensure it looks perfect immediately
   window.addEventListener('load', autoResizeText);
   window.addEventListener('resize', autoResizeText);
-  setTimeout(autoResizeText, 100);
+  document.addEventListener('DOMContentLoaded', autoResizeText);
+  setTimeout(autoResizeText, 50);
+  setTimeout(autoResizeText, 300);
+  setTimeout(autoResizeText, 1000);
 </script>
 {% endblock %} 
