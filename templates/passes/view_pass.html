@@ -4,39 +4,73 @@
 {% block body_class %}public-body{% endblock %}
 
 <style>
-  /* Ensure cross-origin images can be captured */
-  .loc-qr-img { cross-origin: anonymous; }
+  /* ENSURE PRODUCTION MATCHES LOCAL EXACTLY */
+  .pass-card.landscape-layout {
+    display: flex !important;
+    height: 380px !important;
+    max-width: 850px !important;
+    margin: 20px auto !important;
+    overflow: hidden !important;
+  }
 
-  /* Responsiveness for Pass Card */
+  .pass-card-header {
+    width: 240px !important;
+    flex-shrink: 0 !important;
+    background: #1e1f2f !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .pass-header-text {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 20px !important;
+    text-align: center !important;
+  }
+
+  .pass-sidebar-middle {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .pass-template-name {
+    font-family: 'Syne', sans-serif !important;
+    font-weight: 800 !important;
+    font-size: 26px !important;
+    line-height: 1.1 !important;
+    color: #ffffff !important;
+    margin-bottom: 15px !important;
+    text-transform: uppercase !important;
+    width: 100% !important;
+    word-wrap: break-word !important;
+  }
+
+  .pass-payment-info-box {
+    margin-top: auto !important;
+    margin-bottom: 10px !important;
+    background: #f0fdf4 !important;
+    border: 1px solid #bbf7d0 !important;
+    color: #166534 !important;
+  }
+
+  /* Responsiveness */
   @media (max-width: 768px) {
     .pass-card.landscape-layout {
       flex-direction: column !important;
       height: auto !important;
-      width: 100% !important;
-      max-width: 400px;
-      margin: 0 auto;
+      max-width: 400px !important;
     }
     .pass-card-header {
       width: 100% !important;
-      height: 80px !important;
+      height: auto !important;
+      padding: 30px 20px !important;
     }
-    .pass-header-text {
-      flex-direction: row !important;
-      justify-content: space-between;
-      padding: 0 20px;
-    }
-    .pass-main-content {
-      padding: 15px !important;
-    }
-    .pass-body-split {
-      flex-direction: column !important;
-    }
-    .pass-qr-side {
-      margin-top: 15px;
-      padding-left: 0 !important;
-      border-left: none !important;
-      border-top: 1px dashed var(--border);
-      padding-top: 15px;
+    .pass-sidebar-middle {
+      margin: 20px 0 !important;
     }
   }
 </style>
