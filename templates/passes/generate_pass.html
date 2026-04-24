@@ -1,0 +1,97 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block title %}Generate Combo Pass{% endblock %}
+{% block body_class %}public-body{% endblock %}
+
+{% block body %}
+<div class="public-page">
+  <div class="public-card">
+
+    <!-- Header -->
+    <div class="public-header">
+      <div class="pub-location-img pub-img-gradient">
+        <div class="pub-img-overlay"></div>
+      </div>
+      <div class="pub-header-content">
+        <div class="pub-location-name">ALL-LOCATIONS COMBO</div>
+        <div class="pub-template-name">{{ template.name }}</div>
+        <div class="pub-badges">
+          {% if template.discount_percent > 0 %}
+          <span class="pub-badge pub-badge-discount">{{ template.discount_percent }}% OFF</span>
+          {% endif %}
+          <span class="pub-badge pub-badge-price">₹{{ template.total_price }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- What's included -->
+    <div class="pub-included">
+      <div class="pub-included-title">✨ This combo pass covers {{ locations.count }} locations</div>
+      <div class="pub-included-list">
+        {% for loc in locations %}
+        <div class="pub-loc-chip">
+          <span class="pub-loc-chip-prefix">{{ loc.prefix }}</span>
+          <span>{{ loc.name }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Payment note -->
+    <div class="pub-payment-note">
+      <i class="fas fa-cash-register"></i>
+      {{ template.payment_note }}
+    </div>
+
+    {% if errors %}
+    <div class="pub-errors">
+      {% for error in errors %}
+      <div class="pub-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="pub-form" id="pass-form">
+      {% csrf_token %}
+
+      <div class="pub-form-group">
+        <label><i class="fas fa-user"></i> Full Name</label>
+        <input type="text" name="full_name" placeholder="Enter your full name"
+          value="{{ form_data.full_name|default:'' }}" autocomplete="name" required minlength="2">
+      </div>
+
+      <div class="pub-form-group">
+        <label><i class="fas fa-phone"></i> Phone Number</label>
+        <input type="tel" name="phone" placeholder="+91 9999999999"
+          value="{{ form_data.phone|default:'' }}" autocomplete="tel" required>
+      </div>
+
+      <div class="pub-form-group">
+        <label><i class="fas fa-map-marker-alt"></i> Address</label>
+        <textarea name="address" placeholder="Enter your full address" rows="3"
+          required minlength="5">{{ form_data.address|default:'' }}</textarea>
+      </div>
+
+      <button type="submit" class="pub-submit-btn" id="submit-btn">
+        <span id="btn-text"><i class="fas fa-ticket-alt"></i> Generate My Combo Pass</span>
+        <span id="btn-loading" style="display:none"><i class="fas fa-spinner fa-spin"></i> Generating…</span>
+      </button>
+    </form>
+
+    {% if template.access_limit %}
+    <div class="pub-footer-note">
+      <i class="fas fa-hourglass-half"></i>
+      {{ template.passes_count }} / {{ template.access_limit }} passes used
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.getElementById('pass-form').addEventListener('submit', function() {
+  document.getElementById('btn-text').style.display = 'none';
+  document.getElementById('btn-loading').style.display = 'inline';
+  document.getElementById('submit-btn').disabled = true;
+});
+</script>
+{% endblock %}

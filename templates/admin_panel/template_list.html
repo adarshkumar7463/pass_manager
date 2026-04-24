@@ -1,0 +1,46 @@
+{% extends "base/admin_base.html" %}
+{% block title %}Templates — PassManager{% endblock %}
+{% block page_title %}Pass Templates{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'passes:template_create' %}" class="btn-primary-sm"><i class="fas fa-plus"></i> New Template</a>
+{% endblock %}
+
+{% block content %}
+<div class="templates-grid">
+  {% for t in templates %}
+  <div class="template-card">
+    <div class="template-card-top">
+      <div class="template-loc-badge">{{ t.location.prefix }}</div>
+      <span class="badge {% if t.is_active %}badge-active{% else %}badge-expired{% endif %}">
+        {% if t.is_active %}Active{% else %}Inactive{% endif %}
+      </span>
+    </div>
+    <div class="template-name">{{ t.name }}</div>
+    <div class="template-loc-name">{{ t.location.name }}</div>
+    <div class="template-price-row">
+      <div class="template-price">₹{{ t.total_price }}</div>
+      <div class="template-discount">{{ t.discount_percent }}% OFF</div>
+    </div>
+    <div class="template-meta">
+      <span><i class="fas fa-id-card"></i> {{ t.passes_count }} passes</span>
+      {% if t.access_limit %}
+      <span><i class="fas fa-lock"></i> {{ t.access_limit }} limit</span>
+      {% else %}
+      <span><i class="fas fa-infinity"></i> Unlimited</span>
+      {% endif %}
+    </div>
+    <div class="template-actions">
+      <a href="{% url 'passes:template_detail' t.id %}" class="btn-primary-sm"><i class="fas fa-qrcode"></i> View QR</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-full">
+    <i class="fas fa-layer-group"></i>
+    <h3>No Templates Yet</h3>
+    <p>Create your first pass template to get started</p>
+    <a href="{% url 'passes:template_create' %}" class="btn-primary">Create Template</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

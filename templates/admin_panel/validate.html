@@ -1,0 +1,175 @@
+{% extends "base/admin_base.html" %}
+{% block title %}Validate Pass{% endblock %}
+{% block page_title %}Validate Pass{% endblock %}
+
+{% block content %}
+<div class="validate-layout">
+
+  {% if admin_loc %}
+  <div class="location-badge-bar">
+    <i class="fas fa-map-marker-alt"></i>
+    You can only validate for <strong>{{ admin_loc.name }}</strong>
+    <span class="badge badge-loc">{{ admin_loc.prefix }}</span>
+  </div>
+  {% endif %}
+
+  <div class="validate-panel">
+    <div class="validate-tabs">
+      <button class="vtab active" onclick="showTab('search', event)"><i class="fas fa-search"></i> Search ID</button>
+      <button class="vtab" onclick="showTab('scanner', event)"><i class="fas fa-qrcode"></i> QR Scanner</button>
+    </div>
+
+    <div id="tab-search" class="vtab-content">
+      <div class="search-input-wrap">
+        <i class="fas fa-id-card"></i>
+        <input type="text" id="search-id" placeholder="Enter Pass ID (e.g. PASS-0001)" autocomplete="off"
+          oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter') lookupPass()">
+        <button onclick="lookupPass()" class="btn-primary">Lookup</button>
+      </div>
+    </div>
+
+    <div id="tab-scanner" class="vtab-content" style="display:none">
+      <div class="scanner-area">
+        <video id="scanner-video" autoplay playsinline style="display:none"></video>
+        <p class="scanner-hint">Scan any location QR on the pass</p>
+        <button onclick="startScanner()" class="btn-primary" id="start-scan-btn"><i class="fas fa-camera"></i> Start Camera</button>
+        <button onclick="stopScanner()" class="btn-secondary" id="stop-scan-btn" style="display:none"><i class="fas fa-stop"></i> Stop</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-panel" id="result-panel" style="display:none">
+    <div class="result-status" id="result-status"></div>
+    <div class="result-details" id="result-details"></div>
+  </div>
+
+  <div class="result-empty" id="result-empty">
+    <i class="fas fa-id-card-alt"></i>
+    <p>Enter a Pass ID or scan any location QR to view</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+let scannerStream=null, scannerInterval=null;
+
+function showTab(tab, evt) {
+  document.querySelectorAll('.vtab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.vtab-content').forEach(c => c.style.display = 'none');
+  if (evt) evt.target.closest('.vtab').classList.add('active');
+  document.getElementById('tab-' + tab).style.display = '';
+}
+
+async function lookupPass(id) {
+  const passId = id || document.getElementById('search-id').value.trim();
+  if (!passId) return;
+  showLoading();
+  try {
+    const res = await fetch(`{% url 'passes:validate_lookup' %}?id=${encodeURIComponent(passId)}`, {
+      headers: {'X-Requested-With': 'XMLHttpRequest'}
+    });
+    const data = await res.json();
+    if (res.ok) showResult(data); else showError(data.error || 'Pass not found');
+  } catch (e) { showError('Network error'); }
+}
+
+function showLoading() {
+  document.getElementById('result-empty').style.display = 'none';
+  document.getElementById('result-panel').style.display = 'flex';
+  document.getElementById('result-status').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('result-details').innerHTML = '';
+}
+
+function showResult(d) {
+  const isActive = d.status === 'ACTIVE';
+  document.getElementById('result-status').innerHTML = `
+    <div class="status-badge status-${isActive ? 'active' : 'expired'}">
+      <i class="fas fa-${isActive ? 'check-circle' : 'trophy'}"></i>
+      <span>${isActive ? 'ACTIVE' : 'COMPLETED / EXPIRED'}</span>
+    </div>`;
+
+  let visitsHtml = '';
+  d.visits.forEach(v => {
+    const done = v.status === 'DONE';
+    const canAct = v.scannable_by_me && isActive && !done;
+    visitsHtml += `
+      <div class="visit-row ${done ? 'done' : ''} ${!v.scannable_by_me ? 'locked' : ''}">
+        <span class="vr-prefix">${v.prefix}</span>
+        <span class="vr-name">${v.location}</span>
+        <span class="vr-status">
+          ${done ? '✅ ' + (v.visited_at || '') : (canAct ? '<a href="/scan/' + d.unique_id + '/' + v.prefix + '/" class="btn-primary-sm">Check-In Now</a>' : (v.scannable_by_me ? '⬜ Pending' : '🔒 Not your location'))}
+        </span>
+      </div>`;
+  });
+
+  document.getElementById('result-details').innerHTML = `
+    <div class="pass-result-card">
+      <div class="prc-id">${d.unique_id}</div>
+      <div class="prc-row"><span>Name</span><strong>${d.full_name}</strong></div>
+      <div class="prc-row"><span>Phone</span><strong>${d.phone}</strong></div>
+      <div class="prc-row"><span>Progress</span><strong>${d.visits_done}/${d.total_locations} visits (${d.progress}%)</strong></div>
+      <div class="prc-row"><span>Generated</span><strong>${d.created_at}</strong></div>
+    </div>
+    <div class="visits-breakdown">
+      <h4>Location Visits</h4>
+      ${visitsHtml}
+    </div>`;
+}
+
+function showError(msg) {
+  document.getElementById('result-empty').style.display = 'none';
+  document.getElementById('result-panel').style.display = 'flex';
+  document.getElementById('result-status').innerHTML = `
+    <div class="status-badge status-error"><i class="fas fa-exclamation-triangle"></i><span>NOT FOUND</span></div>`;
+  document.getElementById('result-details').innerHTML = `<p class="error-msg">${msg}</p>`;
+}
+
+async function startScanner() {
+  try {
+    scannerStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}});
+    const video = document.getElementById('scanner-video');
+    video.srcObject = scannerStream;
+    video.style.display = 'block';
+    document.getElementById('start-scan-btn').style.display = 'none';
+    document.getElementById('stop-scan-btn').style.display = '';
+    const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+    scannerInterval = setInterval(() => {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(img.data, img.width, img.height);
+        if (code) {
+          stopScanner();
+          // Try to match visit URL: /scan/BTL-001/BTL/
+          const visitMatch = code.data.match(/\/scan\/([A-Z0-9-]+)\/([A-Z]+)\//i);
+          if (visitMatch) {
+            window.location.href = `/scan/${visitMatch[1]}/${visitMatch[2]}/`;
+            return;
+          }
+
+          // Try to match main pass URL: /pass/BTL-001/
+          const passMatch = code.data.match(/\/pass\/([A-Z0-9-]+)\/?/i);
+          if (passMatch) {
+            lookupPass(passMatch[1]);
+            return;
+          }
+          
+          showError('Unknown QR code format');
+        }
+      }
+    }, 500);
+  } catch (e) { showError('Camera access denied'); }
+}
+
+function stopScanner() {
+  if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+  if (scannerInterval) { clearInterval(scannerInterval); scannerInterval = null; }
+  document.getElementById('scanner-video').style.display = 'none';
+  document.getElementById('start-scan-btn').style.display = '';
+  document.getElementById('stop-scan-btn').style.display = 'none';
+}
+</script>
+{% endblock %}

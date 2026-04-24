@@ -1,0 +1,76 @@
+{% extends "base/admin_base.html" %}
+{% block title %}Create Template{% endblock %}
+{% block page_title %}Create Pass Template{% endblock %}
+
+{% block content %}
+<div class="form-page">
+  <div class="form-card">
+    <div class="form-card-header">
+      <i class="fas fa-layer-group"></i>
+      <div>
+        <h2>Create Pass Template</h2>
+        <p>Create a pass template for a location. A QR code will be generated that visitors can scan to register.</p>
+      </div>
+    </div>
+
+    <form method="post" class="styled-form">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>Template Name</label>
+        <input type="text" name="name" placeholder="e.g. Weekend Pass, Entry Pass" value="{{ form_data.name|default:'' }}" required>
+      </div>
+
+      <div class="form-group">
+        <label>Location <span class="req">*</span></label>
+        {% if locations %}
+          <select name="location" required style="width:100%;padding:.65rem 1rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);border-radius:.5rem;color:#e2e8f0;font-size:.9rem;">
+            <option value="">— Select a location —</option>
+            {% for loc in locations %}
+              <option value="{{ loc.id }}">{{ loc.name }} ({{ loc.prefix }})</option>
+            {% endfor %}
+          </select>
+        {% else %}
+          <div style="padding:.75rem 1rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:.5rem;color:#f87171;font-size:.875rem;">
+            ⚠️ No active locations found. <a href="{% url 'locations:create' %}" style="color:#a78bfa;font-weight:600;">Create a location first →</a>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Total Price (₹) <span class="req">*</span></label>
+          <input type="number" name="total_price" min="0" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label>Discount (%)</label>
+          <input type="number" name="discount_percent" min="0" max="100" step="0.01" value="0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Access Limit</label>
+        <input type="number" name="access_limit" min="1" placeholder="Leave blank for unlimited">
+        <span class="form-hint">Max passes that can be generated</span>
+      </div>
+
+      <div class="form-group">
+        <label>Internal Notes (Admin Only)</label>
+        <textarea name="internal_notes" rows="3"></textarea>
+      </div>
+
+      <div class="payment-note-preview">
+        <i class="fas fa-info-circle"></i>
+        <span>Auto-added: <strong>💳 Payment will be done at counter at each location</strong></span>
+      </div>
+
+      <div class="form-actions">
+        <a href="{% url 'passes:dashboard' %}" class="btn-secondary">Cancel</a>
+        {% if locations %}
+          <button type="submit" class="btn-primary"><i class="fas fa-qrcode"></i> Create Template & QR</button>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

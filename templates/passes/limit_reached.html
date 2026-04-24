@@ -1,0 +1,22 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block title %}Pass Limit Reached{% endblock %}
+{% block body_class %}public-body{% endblock %}
+
+{% block body %}
+<div class="public-page">
+  <div class="public-card text-center">
+    <div class="limit-icon"><i class="fas fa-ban"></i></div>
+    <h2 class="limit-title">All Passes Claimed</h2>
+    <p class="limit-desc">
+      The pass limit for <strong>{{ template.location.name }}</strong> has been reached.
+      No more passes can be generated for this template.
+    </p>
+    <div class="limit-meta">
+      <span><i class="fas fa-layer-group"></i> {{ template.name }}</span>
+      <span><i class="fas fa-id-card"></i> {{ template.passes_count }} / {{ template.access_limit }} passes used</span>
+    </div>
+    <p class="limit-contact">Please contact the venue for more information.</p>
+  </div>
+</div>
+{% endblock %}

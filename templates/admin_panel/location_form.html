@@ -1,0 +1,59 @@
+{% extends "base/admin_base.html" %}
+{% block title %}{% if location %}Edit{% else %}New{% endif %} Location{% endblock %}
+{% block page_title %}{% if location %}Edit Location{% else %}New Location{% endif %}{% endblock %}
+
+{% block content %}
+<div class="form-page">
+  <div class="form-card">
+    <div class="form-card-header">
+      <i class="fas fa-map-marker-alt"></i>
+      <div>
+        <h2>{% if location %}Edit: {{ location.name }}{% else %}Create New Location{% endif %}</h2>
+        <p>Locations group pass templates together.</p>
+      </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="styled-form">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group">
+          <label>Location Name <span class="req">*</span></label>
+          <input type="text" name="name" value="{{ location.name|default:'' }}" placeholder="e.g. Main Gate, Zone A" required>
+        </div>
+        <div class="form-group">
+          <label>Prefix <span class="req">*</span></label>
+          <input type="text" name="prefix" value="{{ location.prefix|default:'' }}" placeholder="e.g. A, B, MG" maxlength="5"
+            style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"
+            {% if location %}readonly{% endif %} required>
+          <span class="form-hint">Used in pass IDs: <strong>A-001</strong>, <strong>A-002</strong>…</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" rows="3" placeholder="Describe this location...">{{ location.description|default:'' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Address</label>
+        <textarea name="address" rows="2" placeholder="Physical address...">{{ location.address|default:'' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Location Image</label>
+        {% if location.image %}
+        <div class="current-image"><img src="{{ location.image.url }}" alt="Current"><span>Current image</span></div>
+        {% endif %}
+        <input type="file" name="image" accept="image/*">
+      </div>
+
+      <div class="form-actions">
+        <a href="{% url 'passes:dashboard' %}" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-save"></i> {% if location %}Save Changes{% else %}Create Location{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

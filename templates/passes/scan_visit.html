@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Visit – {{ location.name }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 1.5rem;
+            padding: 2.5rem 2rem;
+            max-width: 420px;
+            width: 100%;
+            color: #fff;
+            text-align: center;
+        }
+        .icon { font-size: 3rem; margin-bottom: 1rem; }
+        h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+        .location-name { color: #a78bfa; font-size: 1.1rem; margin-bottom: 1.5rem; }
+        .info-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem; }
+        .info-row:last-of-type { border-bottom: none; }
+        .label { color: #94a3b8; }
+        .value { font-weight: 600; }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.8rem; font-weight: 700; margin-top: 1rem; }
+        .badge.active { background: rgba(52,211,153,0.2); color: #34d399; border: 1px solid #34d399; }
+        .badge.used { background: rgba(148,163,184,0.2); color: #94a3b8; border: 1px solid #94a3b8; }
+        .badge.expired { background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid #ef4444; }
+        .btn {
+            margin-top: 1.5rem;
+            width: 100%;
+            padding: 0.85rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: #fff;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .done-msg { margin-top: 1.5rem; padding: 1rem; background: rgba(52,211,153,0.1); border-radius: 0.75rem; color: #34d399; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="icon">🏷️</div>
+    <h1>Location Check-In</h1>
+    <div class="location-name">{{ location.name }}</div>
+
+    <div class="info-row"><span class="label">Pass ID</span><span class="value">{{ pass_obj.unique_id }}</span></div>
+    <div class="info-row"><span class="label">Name</span><span class="value">{{ pass_obj.full_name }}</span></div>
+    <div class="info-row"><span class="label">Phone</span><span class="value">{{ pass_obj.phone }}</span></div>
+    <div class="info-row"><span class="label">Discount</span><span class="value">{{ pass_obj.template.discount_percent }}%</span></div>
+
+    <div>
+        <span class="badge {{ pass_obj.status|lower }}">{{ pass_obj.status }}</span>
+    </div>
+
+    {% if already_done %}
+        <div class="done-msg">✅ This pass has already been used.</div>
+    {% else %}
+        <button class="btn" id="markBtn" onclick="markDone()">✅ Mark Visit Done</button>
+    {% endif %}
+</div>
+
+<script>
+function markDone() {
+    const btn = document.getElementById('markBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing…';
+    fetch('mark-done/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+        .then(r => r.json())
+        .then(data => {
+            btn.textContent = '✅ Done!';
+            btn.style.background = 'linear-gradient(135deg,#059669,#065f46)';
+        })
+        .catch(() => { btn.disabled = false; btn.textContent = 'Retry'; });
+}
+function getCookie(name) {
+    const v = `; ${document.cookie}`.split(`; ${name}=`);
+    return v.length === 2 ? v.pop().split(';').shift() : '';
+}
+</script>
+</body>
+</html>

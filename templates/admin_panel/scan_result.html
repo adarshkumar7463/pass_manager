@@ -1,0 +1,147 @@
+{% extends "base/admin_base.html" %}
+{% block title %}Scan Result{% endblock %}
+{% block page_title %}Scan Result{% endblock %}
+
+{% block content %}
+<div class="scan-result-page">
+
+  {% if error %}
+  <div class="scan-error-card">
+    <div class="scan-error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+    <h2>{{ error }}</h2>
+    {% if pass_obj %}<p>Pass: <code>{{ pass_obj.unique_id }}</code></p>{% endif %}
+    {% if location %}<p>Scanned for: <strong>{{ location.name }}</strong></p>{% endif %}
+    <a href="{% url 'passes:validate' %}" class="btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+  </div>
+
+  {% else %}
+
+  <div class="scan-result-card">
+    <!-- Pass info -->
+    <div class="scan-pass-header">
+      <div class="scan-pass-id">{{ pass_obj.unique_id }}</div>
+      <div class="scan-pass-name">{{ pass_obj.full_name }}</div>
+      <div class="scan-pass-phone"><i class="fas fa-phone"></i> {{ pass_obj.phone }}</div>
+    </div>
+
+    <!-- Location -->
+    <div class="scan-location-bar">
+      <i class="fas fa-map-marker-alt"></i>
+      <strong>{{ location.name }}</strong>
+      <span class="scan-prefix-badge">{{ location.prefix }}</span>
+    </div>
+
+    <!-- Status -->
+    {% if pass_obj.status != 'ACTIVE' %}
+    <div class="status-badge status-expired">
+      <i class="fas fa-times-circle"></i> PASS {{ pass_obj.status }}
+    </div>
+    <p class="action-note">This pass is no longer active.</p>
+
+    {% elif visit.status == 'DONE' %}
+    <div class="status-badge status-used">
+      <i class="fas fa-check-circle"></i> ALREADY VISITED HERE
+    </div>
+    <div class="scan-visit-info">
+      <div class="prc-row"><span>Visited at</span><strong>{{ visit.visited_at|date:"d M Y, g:i A" }}</strong></div>
+      {% if visit.payment_method %}<div class="prc-row"><span>Payment</span><strong>{{ visit.payment_method }}</strong></div>{% endif %}
+      {% if visit.amount_paid %}<div class="prc-row"><span>Amount</span><strong>₹{{ visit.amount_paid }}</strong></div>{% endif %}
+    </div>
+
+    {% else %}
+    <div class="status-badge status-active">
+      <i class="fas fa-check-circle"></i> READY TO CHECK IN
+    </div>
+
+    <div class="scan-progress">
+      <div class="scan-progress-label">
+        {{ pass_obj.visits_done }} of {{ pass_obj.total_locations }} locations visited
+      </div>
+      <div class="scan-progress-bar">
+        <div class="scan-progress-fill" style="width: {{ pass_obj.progress_percent }}%"></div>
+      </div>
+    </div>
+
+    <div class="scan-action-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Payment Method</label>
+          <select id="payment-method">
+            <option>Cash</option><option>UPI</option><option>Card</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Amount (₹)</label>
+          <input type="number" id="payment-amount" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input type="text" id="payment-notes" placeholder="Any notes…">
+      </div>
+
+      <button onclick="markDone()" class="btn-success big" id="mark-btn">
+        <i class="fas fa-check-double"></i> Mark Payment Done & Check-In
+      </button>
+    </div>
+    {% endif %}
+
+    <!-- All location statuses preview -->
+    <div class="scan-all-visits">
+      <h4>Pass Progress</h4>
+      <div class="scan-visits-list">
+        {% for v in pass_obj.location_visits.all %}
+        <div class="scan-visit-row {% if v.status == 'DONE' %}done{% endif %} {% if v.location.id == location.id %}current{% endif %}">
+          <span class="svr-prefix">{{ v.location.prefix }}</span>
+          <span class="svr-name">{{ v.location.name }}</span>
+          <span class="svr-status">
+            {% if v.status == 'DONE' %}✅{% else %}⬜{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function markDone() {
+  const btn = document.getElementById('mark-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking…';
+
+  const method = document.getElementById('payment-method').value;
+  const amount = document.getElementById('payment-amount').value;
+  const notes = document.getElementById('payment-notes').value;
+
+  try {
+    const res = await fetch("{% url 'passes:mark_visit_done' pass_obj.unique_id location.prefix %}", {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify({method, amount: amount || null, notes})
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (data.auto_expired) {
+        showToast('🎉 All 6 locations visited! Pass completed & expired.');
+      } else {
+        showToast(`✅ Checked-in (${data.visits_done}/${data.total_locations})`);
+      }
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showToast(data.error || 'Failed');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check-double"></i> Mark Payment Done & Check-In';
+    }
+  } catch (e) {
+    showToast('Network error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check-double"></i> Mark Payment Done & Check-In';
+  }
+}
+</script>
+{% endblock %}

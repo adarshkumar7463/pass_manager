@@ -1,0 +1,158 @@
+{% extends "base/admin_base.html" %}
+{% block title %}Dashboard — PassManager{% endblock %}
+{% block page_title %}{% if is_location_admin %}{{ location.name }} — Dashboard{% else %}Dashboard{% endif %}{% endblock %}
+
+{% block header_actions %}
+{% if not is_location_admin %}
+<a href="{% url 'passes:template_create' %}" class="btn-primary-sm"><i class="fas fa-plus"></i> New Template</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if is_location_admin %}
+  <!-- ── LOCATION ADMIN VIEW ── -->
+  <div class="location-badge-bar">
+    <i class="fas fa-map-marker-alt"></i>
+    <strong>{{ location.name }}</strong>
+    <span class="badge badge-loc">{{ location.prefix }}</span>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card stat-total">
+      <div class="stat-icon"><i class="fas fa-id-card"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ stats.total }}</div>
+        <div class="stat-label">Total Passes</div>
+      </div>
+    </div>
+    <div class="stat-card stat-active">
+      <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ stats.done }}</div>
+        <div class="stat-label">Checked-In</div>
+      </div>
+    </div>
+    <div class="stat-card stat-expired">
+      <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ stats.pending }}</div>
+        <div class="stat-label">Pending</div>
+      </div>
+    </div>
+    <div class="stat-card stat-used">
+      <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ stats.today }}</div>
+        <div class="stat-label">Today</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header"><h2>Recent Check-Ins at {{ location.name }}</h2></div>
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr><th>Pass ID</th><th>Visitor</th><th>Checked-In At</th><th>Amount</th><th>Method</th></tr>
+      </thead>
+      <tbody>
+        {% for v in recent_visits %}
+        <tr>
+          <td><code class="pass-id">{{ v.pass_obj.unique_id }}</code></td>
+          <td>{{ v.pass_obj.full_name }}</td>
+          <td>{{ v.visited_at|date:"d M, g:i A" }}</td>
+          <td>{% if v.amount_paid %}₹{{ v.amount_paid }}{% else %}—{% endif %}</td>
+          <td>{{ v.payment_method|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">No check-ins yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% else %}
+  <!-- ── SUPERADMIN VIEW ── -->
+  <div class="stats-grid">
+    <div class="stat-card stat-total">
+      <div class="stat-icon"><i class="fas fa-id-card"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ total_passes }}</div>
+        <div class="stat-label">Total Passes</div>
+      </div>
+    </div>
+    <div class="stat-card stat-active">
+      <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ active_passes }}</div>
+        <div class="stat-label">Active Passes</div>
+      </div>
+    </div>
+    <div class="stat-card stat-used">
+      <div class="stat-icon"><i class="fas fa-trophy"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ expired_passes }}</div>
+        <div class="stat-label">Completed (6/6)</div>
+      </div>
+    </div>
+    <div class="stat-card stat-expired">
+      <div class="stat-icon"><i class="fas fa-map-marker-check"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ done_visits }}/{{ total_visits }}</div>
+        <div class="stat-label">Visits Done</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header"><h2>Locations</h2></div>
+  <div class="locations-grid">
+    {% for ls in loc_stats %}
+    <div class="location-card">
+      {% if ls.location.image %}
+      <div class="location-img" style="background-image:url('{{ ls.location.image.url }}')"></div>
+      {% else %}
+      <div class="location-img location-img-placeholder"><i class="fas fa-map-marker-alt"></i></div>
+      {% endif %}
+      <div class="location-body">
+        <div class="location-prefix">{{ ls.location.prefix }}</div>
+        <div class="location-name">{{ ls.location.name }}</div>
+        <div class="location-desc">{{ ls.location.description|truncatechars:60 }}</div>
+        <div class="location-stats">
+          <span><i class="fas fa-check"></i> {{ ls.done }} done</span>
+          <span><i class="fas fa-id-card"></i> {{ ls.total }} total</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-header" style="margin-top:2rem"><h2>Combo Template</h2></div>
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr><th>Template</th><th>Price</th><th>Discount</th><th>Passes</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for t in templates %}
+        <tr>
+          <td><strong>{{ t.name }}</strong></td>
+          <td>₹{{ t.total_price }}</td>
+          <td>{{ t.discount_percent }}%</td>
+          <td>{{ t.passes_count }}{% if t.access_limit %}/{{ t.access_limit }}{% endif %}</td>
+          <td>
+            {% if t.is_active %}<span class="badge badge-active">Active</span>
+            {% else %}<span class="badge badge-expired">Inactive</span>{% endif %}
+          </td>
+          <td><a href="{% url 'passes:template_detail' t.id %}" class="icon-btn"><i class="fas fa-eye"></i></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty-row">
+          No template yet. <a href="{% url 'passes:template_create' %}">Create the combo template</a>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base/admin_base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="analytics-page">
+
+  <div class="stats-grid">
+    <div class="stat-card stat-total">
+      <div class="stat-icon"><i class="fas fa-id-card"></i></div>
+      <div class="stat-info"><div class="stat-value">{{ total }}</div><div class="stat-label">Total Passes</div></div>
+    </div>
+    {% for ls in location_stats %}
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-map-marker-alt"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ ls.total }}</div>
+        <div class="stat-label">{{ ls.name }}</div>
+        <div class="stat-sub">{{ ls.active }} active · {{ ls.used }} used · {{ ls.expired }} expired</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-card">
+    <h3>Passes Generated — Last 14 Days</h3>
+    <canvas id="daily-chart" height="100"></canvas>
+  </div>
+
+  <!-- Per-location breakdown -->
+  <div class="section-header"><h2>Location Breakdown</h2></div>
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr><th>Location</th><th>Total</th><th>Active</th><th>Used/Paid</th><th>Expired</th><th>Conversion</th></tr>
+      </thead>
+      <tbody>
+        {% for ls in location_stats %}
+        <tr>
+          <td><strong>{{ ls.name }}</strong></td>
+          <td>{{ ls.total }}</td>
+          <td><span class="badge badge-active">{{ ls.active }}</span></td>
+          <td><span class="badge badge-used">{{ ls.used }}</span></td>
+          <td><span class="badge badge-expired">{{ ls.expired }}</span></td>
+          <td>
+            {% if ls.total > 0 %}
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: {% widthratio ls.used ls.total 100 %}%"></div>
+            </div>
+            {% widthratio ls.used ls.total 100 %}%
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const dailyData = {{ daily_stats|safe }};
+const labels = dailyData.map(d => d.date);
+const values = dailyData.map(d => d.count);
+
+new Chart(document.getElementById('daily-chart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Passes Generated',
+      data: values,
+      backgroundColor: 'rgba(120,80,255,0.7)',
+      borderColor: 'rgba(120,80,255,1)',
+      borderWidth: 2,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endblock %}

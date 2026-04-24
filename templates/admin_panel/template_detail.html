@@ -1,0 +1,107 @@
+{% extends "base/admin_base.html" %}
+{% block title %}{{ template.name }} — Template Detail{% endblock %}
+{% block page_title %}Template: {{ template.name }}{% endblock %}
+
+{% block header_actions %}
+<button onclick="toggleStatus()" class="btn-ghost-sm" id="toggle-btn">
+  {% if template.is_active %}<i class="fas fa-pause"></i> Deactivate{% else %}<i class="fas fa-play"></i> Activate{% endif %}
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="detail-grid">
+
+  <!-- QR Card -->
+  <div class="qr-card">
+    <div class="qr-card-header">
+      <h3>Scan to Generate Pass</h3>
+      <span class="badge {% if template.is_active %}badge-active{% else %}badge-expired{% endif %}">
+        {% if template.is_active %}Active{% else %}Inactive{% endif %}
+      </span>
+    </div>
+    <div class="qr-display">
+      {% if template.qr_code %}
+      <img src="{{ template.qr_code.url }}" alt="QR Code" class="qr-image">
+      {% else %}
+      <div class="qr-placeholder"><i class="fas fa-qrcode"></i><p>QR not generated</p></div>
+      {% endif %}
+    </div>
+    <div class="qr-url">
+      <code>{{ qr_url }}</code>
+      <button onclick="copyUrl('{{ qr_url }}')" class="copy-btn"><i class="fas fa-copy"></i></button>
+    </div>
+    {% if template.qr_code %}
+    <a href="{{ template.qr_code.url }}" download="qr_{{ template.id }}.png" class="btn-primary full-width">
+      <i class="fas fa-download"></i> Download QR Code
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Info Card -->
+  <div class="info-card">
+    <h3>Template Details</h3>
+    <div class="info-row"><span>Location</span><strong>{{ template.location.name }}</strong></div>
+    <div class="info-row"><span>Price</span><strong>₹{{ template.total_price }}</strong></div>
+    <div class="info-row"><span>Discount</span><strong>{{ template.discount_percent }}%</strong></div>
+    <div class="info-row"><span>Access Limit</span><strong>{% if template.access_limit %}{{ template.access_limit }}{% else %}Unlimited{% endif %}</strong></div>
+    <div class="info-row"><span>Passes Generated</span><strong>{{ template.passes_count }}</strong></div>
+    <div class="info-row"><span>Active Passes</span><strong>{{ template.active_passes_count }}</strong></div>
+    <div class="info-row"><span>Created</span><strong>{{ template.created_at|date:"d M Y" }}</strong></div>
+    {% if template.internal_notes %}
+    <div class="internal-notes">
+      <label><i class="fas fa-lock"></i> Internal Notes</label>
+      <p>{{ template.internal_notes }}</p>
+    </div>
+    {% endif %}
+    <div class="payment-note-preview">
+      <i class="fas fa-credit-card"></i> {{ template.payment_note }}
+    </div>
+  </div>
+</div>
+
+<!-- Passes Table -->
+<div class="section-header" style="margin-top:2rem">
+  <h2>Generated Passes</h2>
+  <span class="badge badge-loc">{{ template.passes_count }} total</span>
+</div>
+<div class="table-card">
+  <table class="data-table">
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Phone</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for p in passes %}
+      <tr>
+        <td><code class="pass-id">{{ p.unique_id }}</code></td>
+        <td>{{ p.full_name }}</td>
+        <td>{{ p.phone }}</td>
+        <td>{{ p.created_at|date:"d M Y, g:i A" }}</td>
+        <td>
+          <span class="badge {% if p.status == 'ACTIVE' %}badge-active{% elif p.status == 'EXPIRED' %}badge-expired{% else %}badge-used{% endif %}">
+            {{ p.status }}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'passes:view_pass' p.unique_id %}" target="_blank" class="icon-btn" title="View"><i class="fas fa-eye"></i></a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty-row">No passes yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyUrl(url) {
+  navigator.clipboard.writeText(url).then(() => showToast('URL copied!'));
+}
+async function toggleStatus() {
+  const res = await fetch("{% url 'passes:toggle_template' template.id %}", {method:'POST', headers:{'X-CSRFToken': getCookie('csrftoken')}});
+  const data = await res.json();
+  location.reload();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base/admin_base.html" %}
+{% block title %}Manage Admins{% endblock %}
+{% block page_title %}Admin Users{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'accounts:create_user' %}" class="btn-primary-sm"><i class="fas fa-plus"></i> New Admin</a>
+{% endblock %}
+
+{% block content %}
+<div class="table-card">
+  <table class="data-table">
+    <thead>
+      <tr><th>Username</th><th>Email</th><th>Role</th><th>Locations</th><th>Joined</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td><strong>{{ u.username }}</strong></td>
+        <td>{{ u.email|default:"—" }}</td>
+        <td>{% if u.is_superuser %}<span class="badge badge-active">Superadmin</span>{% else %}<span class="badge badge-loc">Admin</span>{% endif %}</td>
+        <td>
+          {% for al in u.admin_locations.all %}
+          <span class="badge badge-loc">{{ al.location.name }}</span>
+          {% empty %}{% if u.is_superuser %}All{% else %}—{% endif %}
+          {% endfor %}
+        </td>
+        <td>{{ u.date_joined|date:"d M Y" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

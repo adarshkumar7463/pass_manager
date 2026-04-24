@@ -1,0 +1,232 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block title %}Combo Pass {{ pass_obj.unique_id }}{% endblock %}
+{% block body_class %}public-body{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Ensure cross-origin images can be captured */
+  .loc-qr-img { cross-origin: anonymous; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="public-page landscape">
+
+  <div id="pass-to-download" class="pass-card pass-combo landscape-layout {% if pass_obj.status == 'EXPIRED' %}pass-expired{% endif %}">
+    
+    <!-- Left Side: Visual Header -->
+<div class="pass-card-header">
+  <div class="pass-header-text">
+    <div class="pass-sidebar-top">
+      <i class="fas fa-ticket-alt"></i> COMBO PASS
+    </div>
+
+    <div class="pass-sidebar-middle">
+      <div class="pass-template-name">{{ pass_obj.template.name|upper }}</div>
+      {% if pass_obj.template.discount_percent > 0 %}
+      <div class="pass-discount-ad">
+        <div class="ad-badge">SPECIAL OFFER</div>
+        <div class="ad-value">{{ pass_obj.template.discount_percent|floatformat:0 }}% OFF</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="pass-sidebar-bottom">
+      <i class="fas fa-map-marker-alt"></i> ALL LOCATIONS
+    </div>
+  </div>
+</div>
+
+<!-- Right Side: Main Content -->
+<div class="pass-main-content">
+
+  <!-- Top Row: ID and Status -->
+  <div class="pass-top-row">
+    <div class="pass-id-section">
+      <div class="pass-id-label">PASS ID</div>
+      <div class="pass-id-value">{{ pass_obj.unique_id }}</div>
+    </div>
+    <div class="pass-status-row">
+      <div class="pass-status-badge pass-status-{{ pass_obj.status|lower }}">
+        {% if pass_obj.status == 'ACTIVE' %}
+        <i class="fas fa-check-circle"></i> {{ pass_obj.visits_done }}/{{ pass_obj.total_locations }} VISITED
+        {% elif pass_obj.status == 'EXPIRED' %}
+        <i class="fas fa-trophy"></i> COMPLETED
+        {% else %}
+        {{ pass_obj.status }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="pass-body-split">
+    <!-- Details Column -->
+    <div class="pass-details-side">
+      <div class="pass-detail-item">
+        <span class="pd-label">HOLDER</span>
+        <span class="pd-value" style="font-size: 15px; color: var(--pub-accent);">{{ pass_obj.full_name }}</span>
+      </div>
+
+      <div class="pass-details-grid" style="padding: 0; display: block;">
+        <div class="pass-detail-item" style="margin-bottom: 8px;">
+          <span class="pd-label"><i class="fas fa-phone"></i> PHONE</span>
+          <span class="pd-value">{{ pass_obj.phone }}</span>
+        </div>
+        <div class="pass-detail-item">
+          <span class="pd-label"><i class="fas fa-calendar-alt"></i> ISSUED</span>
+          <span class="pd-value">{{ pass_obj.created_at|date:"d M Y" }}</span>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="pass-progress-section">
+        <div class="pass-progress-bar">
+          <div class="pass-progress-fill" style="width: {{ pass_obj.progress_percent }}%"></div>
+        </div>
+        <div class="pass-progress-text" style="font-size: 10px; margin-top: 4px;">{{ pass_obj.progress_percent }}%
+          COMPLETE</div>
+      </div>
+
+      <!-- Payment note -->
+      {% if pass_obj.template.payment_note %}
+      <div class="pass-payment-note">
+        <i class="fas fa-info-circle"></i>
+        {{ pass_obj.template.payment_note }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- QRs Column -->
+    <div class="pass-qr-side">
+      <div class="pass-locations-title">
+        <i class="fas fa-qrcode"></i> SHOW QR AT COUNTER
+      </div>
+
+      <div class="pass-locations-grid">
+        {% for visit in visits %}
+        <div class="pass-location-qr {% if visit.status == 'DONE' %}loc-done{% endif %}">
+          <div class="loc-qr-header">
+            <span class="loc-qr-prefix" style="padding: 1px 4px; font-size: 9px;">{{ visit.location.prefix }}</span>
+            {% if visit.status == 'DONE' %}
+            <span class="loc-qr-status done"><i class="fas fa-check"></i></span>
+            {% endif %}
+          </div>
+          <div class="loc-qr-name">{{ visit.location.name }}</div>
+          <div class="loc-qr-image-wrap">
+            {% if visit.qr_code %}
+            <img src="{{ visit.qr_code.url }}" alt="QR" class="loc-qr-img" crossorigin="anonymous">
+            {% else %}
+            <div class="loc-qr-missing" style="font-size: 20px;"><i class="fas fa-qrcode"></i></div>
+            {% endif %}
+            {% if visit.status == 'DONE' %}
+            <div class="loc-qr-overlay"><i class="fas fa-check-circle"></i></div>
+            {% endif %}
+          </div>
+        </div>
+        {% empty %}
+        <!-- Single Pass QR -->
+        <div class="pass-location-qr" style="grid-column: 1 / -1; max-width: 120px; margin: 0 auto;">
+          <div class="loc-qr-header">
+            <span class="loc-qr-prefix">{{ pass_obj.location.prefix }}</span>
+          </div>
+          <div class="loc-qr-name">{{ pass_obj.location.name }}</div>
+          <div class="loc-qr-image-wrap">
+            {% if pass_obj.pass_qr %}
+            <img src="{{ pass_obj.pass_qr.url }}" alt="QR" class="loc-qr-img" crossorigin="anonymous">
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- Actions -->
+<div class="pass-actions">
+  <button onclick="downloadAsImage()" class="pass-action-btn btn-dl" id="dl-btn">
+    <i class="fas fa-download"></i> Save Image
+  </button>
+  <button onclick="shareWhatsApp()" class="pass-action-btn btn-wa">
+    <i class="fab fa-whatsapp"></i> Share
+  </button>
+  <button onclick="copyPassLink()" class="pass-action-btn btn-copy">
+    <i class="fas fa-link"></i> Link
+  </button>
+</div>
+
+<div class="pass-disclaimer">
+  <i class="fas fa-shield-alt"></i>
+  This pass is non-transferable.
+</div>
+</div>
+
+<div id="toast" class="toast-msg"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+  const passUrl = window.location.href;
+  const passId = '{{ pass_obj.unique_id }}';
+  const holderName = '{{ pass_obj.full_name }}';
+
+  function shareWhatsApp() {
+    const msg = `🎫 *Combo Pass*\n\n` +
+      `👤 ${holderName}\n` +
+      `🆔 ${passId}\n` +
+      `✅ Valid at 6 locations\n\n` +
+      `🔗 ${passUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  function copyPassLink() {
+    navigator.clipboard.writeText(passUrl).then(() => showToast('Link copied!'));
+  }
+
+  async function downloadAsImage() {
+    const btn = document.getElementById('dl-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    btn.disabled = true;
+
+    try {
+      const element = document.getElementById('pass-to-download');
+
+      // Temporarily disable any transitions for clean capture
+      element.style.transition = 'none';
+
+      const canvas = await html2canvas(element, {
+        scale: 3, // Higher resolution for printing/sharing
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f4f1fe'
+      });
+
+      const link = document.createElement('a');
+      link.download = `Pass_${passId}_${holderName.replace(/\s+/g, '_')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      showToast('Pass saved to gallery!');
+    } catch (err) {
+      console.error('Download failed:', err);
+      showToast('Failed to save image. Try screenshot instead.');
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+{% endblock %} 
