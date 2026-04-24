@@ -45,9 +45,11 @@
     color: #ffffff !important;
     margin-bottom: 15px !important;
     text-transform: uppercase !important;
-    width: 200px !important; /* Fixed width for better fitting logic */
+    width: 200px !important;
     max-width: 200px !important;
+    white-space: normal !important;
     word-wrap: break-word !important;
+    word-break: break-word !important;
     overflow-wrap: break-word !important;
     hyphens: auto !important;
     display: flex !important;
@@ -76,175 +78,182 @@
   }
 </style>
 
-  /* Responsiveness */
-  @media (max-width: 768px) {
-    .pass-card.landscape-layout {
-      flex-direction: column !important;
-      height: auto !important;
-      max-width: 400px !important;
-    }
-    .pass-card-header {
-      width: 100% !important;
-      height: auto !important;
-      padding: 30px 20px !important;
-    }
-    .pass-sidebar-middle {
-      margin: 20px 0 !important;
-    }
-  }
+/* Responsiveness */
+@media (max-width: 768px) {
+.pass-card.landscape-layout {
+flex-direction: column !important;
+height: auto !important;
+max-width: 400px !important;
+}
+.pass-card-header {
+width: 100% !important;
+height: auto !important;
+padding: 30px 20px !important;
+}
+.pass-sidebar-middle {
+margin: 20px 0 !important;
+}
+}
 </style>
 
 {% block body %}
 <div class="public-page landscape">
 
-  <div id="pass-to-download" class="pass-card pass-combo landscape-layout {% if pass_obj.status == 'EXPIRED' %}pass-expired{% endif %}">
-    
+  <div id="pass-to-download"
+    class="pass-card pass-combo landscape-layout {% if pass_obj.status == 'EXPIRED' %}pass-expired{% endif %}">
+
     <!-- Left Side: Visual Header -->
-<div class="pass-card-header">
-  <div class="pass-header-text">
-    <div class="pass-sidebar-top">
-      <i class="fas fa-ticket-alt"></i> COMBO PASS
-    </div>
-
-    <div class="pass-sidebar-middle" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 10px;">
-      <div class="pass-template-name" style="font-size: 24px; line-height: 1.1; margin-bottom: 15px; width: 100%; word-wrap: break-word;">{{ pass_obj.template.name|upper }}</div>
-      {% if pass_obj.template.discount_percent > 0 %}
-      <div class="pass-discount-ad" style="margin: 0 auto;">
-        <div class="ad-badge" style="font-size: 9px; letter-spacing: 1px;">SPECIAL OFFER</div>
-        <div class="ad-value" style="font-size: 20px; color: var(--green);">{{ pass_obj.template.discount_percent|floatformat:0 }}% OFF</div>
-      </div>
-      {% endif %}
-    </div>
-
-    <div class="pass-sidebar-bottom">
-      <i class="fas fa-map-marker-alt"></i> ALL LOCATIONS
-    </div>
-  </div>
-</div>
-
-<!-- Right Side: Main Content -->
-<div class="pass-main-content">
-
-  <!-- Top Row: ID and Status -->
-  <div class="pass-top-row">
-    <div class="pass-id-section">
-      <div class="pass-id-label">PASS ID</div>
-      <div class="pass-id-value">{{ pass_obj.unique_id }}</div>
-    </div>
-    <div class="pass-status-row">
-      <div class="pass-status-badge pass-status-{{ pass_obj.status|lower }}">
-        {% if pass_obj.status == 'ACTIVE' %}
-        <i class="fas fa-check-circle"></i> {{ pass_obj.visits_done }}/{{ pass_obj.total_locations }} VISITED
-        {% elif pass_obj.status == 'EXPIRED' %}
-        <i class="fas fa-trophy"></i> COMPLETED
-        {% else %}
-        {{ pass_obj.status }}
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <div class="pass-body-split">
-    <!-- Details Column -->
-    <div class="pass-details-side">
-      <div class="pass-detail-item">
-        <span class="pd-label">HOLDER</span>
-        <span class="pd-value" style="font-size: 15px; color: var(--pub-accent);">{{ pass_obj.full_name }}</span>
-      </div>
-
-      <div class="pass-details-grid" style="padding: 0; display: block;">
-        <div class="pass-detail-item" style="margin-bottom: 8px;">
-          <span class="pd-label"><i class="fas fa-phone"></i> PHONE</span>
-          <span class="pd-value">{{ pass_obj.phone }}</span>
+    <div class="pass-card-header">
+      <div class="pass-header-text">
+        <div class="pass-sidebar-top">
+          <i class="fas fa-ticket-alt"></i> COMBO PASS
         </div>
-        <div class="pass-detail-item">
-          <span class="pd-label"><i class="fas fa-calendar-alt"></i> ISSUED</span>
-          <span class="pd-value">{{ pass_obj.created_at|date:"d M Y" }}</span>
-        </div>
-      </div>
 
-      <!-- Progress bar -->
-      <div class="pass-progress-section">
-        <div class="pass-progress-bar">
-          <div class="pass-progress-fill" style="width: {{ pass_obj.progress_percent }}%"></div>
-        </div>
-        <div class="pass-progress-text" style="font-size: 10px; margin-top: 4px;">{{ pass_obj.progress_percent }}%
-          COMPLETE</div>
-      </div>
-
-      <!-- Payment note (Box Design) -->
-      {% if pass_obj.template.payment_note %}
-      <div class="pass-payment-info-box" style="margin-top: 25px; padding: 12px 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #166534; font-size: 12px; font-weight: 500;">
-        <div style="width: 24px; height: 24px; background: #22c55e; border-radius: 50%; display: grid; place-items: center; color: #fff; flex-shrink: 0;">
-          <i class="fas fa-info" style="font-size: 10px;"></i>
-        </div>
-        <div style="flex: 1; line-height: 1.4;">
-          <span style="font-size: 10px; display: block; opacity: 0.8; margin-bottom: 2px;">💳 PAYMENT NOTE</span>
-          {{ pass_obj.template.payment_note }}
-        </div>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- QRs Column -->
-    <div class="pass-qr-side">
-      <div class="pass-locations-title">
-        <i class="fas fa-qrcode"></i> SHOW QR AT COUNTER
-      </div>
-
-      <div class="pass-locations-grid">
-        {% for visit in visits %}
-        <div class="pass-location-qr {% if visit.status == 'DONE' %}loc-done{% endif %}">
-          <div class="loc-qr-header">
-            <span class="loc-qr-prefix" style="padding: 1px 4px; font-size: 9px;">{{ visit.location.prefix }}</span>
-            {% if visit.status == 'DONE' %}
-            <span class="loc-qr-status done"><i class="fas fa-check"></i></span>
-            {% endif %}
+        <div class="pass-sidebar-middle">
+          <div class="pass-template-name">{{ pass_obj.template.name|upper }}</div>
+          {% if pass_obj.template.discount_percent > 0 %}
+          <div class="pass-discount-ad" style="margin: 0 auto;">
+            <div class="ad-badge" style="font-size: 9px; letter-spacing: 1px;">SPECIAL OFFER</div>
+            <div class="ad-value" style="font-size: 20px; color: var(--green);">{{ pass_obj.template.discount_percent|floatformat:0 }}% OFF</div>
           </div>
-          <div class="loc-qr-name">{{ visit.location.name }}</div>
-          <div class="loc-qr-image-wrap">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?data={{ request.scheme }}://{{ request.get_host }}/scan/{{ pass_obj.unique_id }}/{{ visit.location.prefix }}/&size=150x150" alt="QR" class="loc-qr-img" crossorigin="anonymous">
-            {% if visit.status == 'DONE' %}
-            <div class="loc-qr-overlay"><i class="fas fa-check-circle"></i></div>
+          {% endif %}
+        </div>
+
+        <div class="pass-sidebar-bottom">
+          <i class="fas fa-map-marker-alt"></i> ALL LOCATIONS
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side: Main Content -->
+    <div class="pass-main-content">
+
+      <!-- Top Row: ID and Status -->
+      <div class="pass-top-row">
+        <div class="pass-id-section">
+          <div class="pass-id-label">PASS ID</div>
+          <div class="pass-id-value">{{ pass_obj.unique_id }}</div>
+        </div>
+        <div class="pass-status-row">
+          <div class="pass-status-badge pass-status-{{ pass_obj.status|lower }}">
+            {% if pass_obj.status == 'ACTIVE' %}
+            <i class="fas fa-check-circle"></i> {{ pass_obj.visits_done }}/{{ pass_obj.total_locations }} VISITED
+            {% elif pass_obj.status == 'EXPIRED' %}
+            <i class="fas fa-trophy"></i> COMPLETED
+            {% else %}
+            {{ pass_obj.status }}
             {% endif %}
           </div>
         </div>
-        {% empty %}
-        <!-- Single Pass QR -->
-        <div class="pass-location-qr" style="grid-column: 1 / -1; max-width: 120px; margin: 0 auto;">
-          <div class="loc-qr-header">
-            <span class="loc-qr-prefix">{{ pass_obj.location.prefix }}</span>
+      </div>
+
+      <div class="pass-body-split">
+        <!-- Details Column -->
+        <div class="pass-details-side">
+          <div class="pass-detail-item">
+            <span class="pd-label">HOLDER</span>
+            <span class="pd-value" style="font-size: 15px; color: var(--pub-accent);">{{ pass_obj.full_name }}</span>
           </div>
-          <div class="loc-qr-name">{{ pass_obj.location.name }}</div>
-          <div class="loc-qr-image-wrap">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?data={{ request.scheme }}://{{ request.get_host }}/pass/{{ pass_obj.unique_id }}/&size=150x150" alt="QR" class="loc-qr-img" crossorigin="anonymous">
+
+          <div class="pass-details-grid" style="padding: 0; display: block;">
+            <div class="pass-detail-item" style="margin-bottom: 8px;">
+              <span class="pd-label"><i class="fas fa-phone"></i> PHONE</span>
+              <span class="pd-value">{{ pass_obj.phone }}</span>
+            </div>
+            <div class="pass-detail-item">
+              <span class="pd-label"><i class="fas fa-calendar-alt"></i> ISSUED</span>
+              <span class="pd-value">{{ pass_obj.created_at|date:"d M Y" }}</span>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="pass-progress-section">
+            <div class="pass-progress-bar">
+              <div class="pass-progress-fill" style="width: {{ pass_obj.progress_percent }}%"></div>
+            </div>
+            <div class="pass-progress-text" style="font-size: 10px; margin-top: 4px;">{{ pass_obj.progress_percent }}%
+              COMPLETE</div>
+          </div>
+
+          <!-- Payment note (Box Design) -->
+          {% if pass_obj.template.payment_note %}
+          <div class="pass-payment-info-box"
+            style="margin-top: 25px; padding: 12px 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #166534; font-size: 12px; font-weight: 500;">
+            <div
+              style="width: 24px; height: 24px; background: #22c55e; border-radius: 50%; display: grid; place-items: center; color: #fff; flex-shrink: 0;">
+              <i class="fas fa-info" style="font-size: 10px;"></i>
+            </div>
+            <div style="flex: 1; line-height: 1.4;">
+              <span style="font-size: 10px; display: block; opacity: 0.8; margin-bottom: 2px;">💳 PAYMENT NOTE</span>
+              {{ pass_obj.template.payment_note }}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- QRs Column -->
+        <div class="pass-qr-side">
+          <div class="pass-locations-title">
+            <i class="fas fa-qrcode"></i> SHOW QR AT COUNTER
+          </div>
+
+          <div class="pass-locations-grid">
+            {% for visit in visits %}
+            <div class="pass-location-qr {% if visit.status == 'DONE' %}loc-done{% endif %}">
+              <div class="loc-qr-header">
+                <span class="loc-qr-prefix" style="padding: 1px 4px; font-size: 9px;">{{ visit.location.prefix }}</span>
+                {% if visit.status == 'DONE' %}
+                <span class="loc-qr-status done"><i class="fas fa-check"></i></span>
+                {% endif %}
+              </div>
+              <div class="loc-qr-name">{{ visit.location.name }}</div>
+              <div class="loc-qr-image-wrap">
+                <img
+                  src="https://api.qrserver.com/v1/create-qr-code/?data={{ request.scheme }}://{{ request.get_host }}/scan/{{ pass_obj.unique_id }}/{{ visit.location.prefix }}/&size=150x150"
+                  alt="QR" class="loc-qr-img" crossorigin="anonymous">
+                {% if visit.status == 'DONE' %}
+                <div class="loc-qr-overlay"><i class="fas fa-check-circle"></i></div>
+                {% endif %}
+              </div>
+            </div>
+            {% empty %}
+            <!-- Single Pass QR -->
+            <div class="pass-location-qr" style="grid-column: 1 / -1; max-width: 120px; margin: 0 auto;">
+              <div class="loc-qr-header">
+                <span class="loc-qr-prefix">{{ pass_obj.location.prefix }}</span>
+              </div>
+              <div class="loc-qr-name">{{ pass_obj.location.name }}</div>
+              <div class="loc-qr-image-wrap">
+                <img
+                  src="https://api.qrserver.com/v1/create-qr-code/?data={{ request.scheme }}://{{ request.get_host }}/pass/{{ pass_obj.unique_id }}/&size=150x150"
+                  alt="QR" class="loc-qr-img" crossorigin="anonymous">
+              </div>
+            </div>
+            {% endfor %}
           </div>
         </div>
-        {% endfor %}
       </div>
+
     </div>
   </div>
 
-</div>
-</div>
+  <!-- Actions -->
+  <div class="pass-actions">
+    <button onclick="downloadAsImage()" class="pass-action-btn btn-dl" id="dl-btn">
+      <i class="fas fa-download"></i> Save Image
+    </button>
+    <button onclick="shareWhatsApp()" class="pass-action-btn btn-wa">
+      <i class="fab fa-whatsapp"></i> Share
+    </button>
+    <button onclick="copyPassLink()" class="pass-action-btn btn-copy">
+      <i class="fas fa-link"></i> Link
+    </button>
+  </div>
 
-<!-- Actions -->
-<div class="pass-actions">
-  <button onclick="downloadAsImage()" class="pass-action-btn btn-dl" id="dl-btn">
-    <i class="fas fa-download"></i> Save Image
-  </button>
-  <button onclick="shareWhatsApp()" class="pass-action-btn btn-wa">
-    <i class="fab fa-whatsapp"></i> Share
-  </button>
-  <button onclick="copyPassLink()" class="pass-action-btn btn-copy">
-    <i class="fas fa-link"></i> Link
-  </button>
-</div>
-
-<div class="pass-disclaimer">
-  <i class="fas fa-shield-alt"></i>
-  This pass is non-transferable.
-</div>
+  <div class="pass-disclaimer">
+    <i class="fas fa-shield-alt"></i>
+    This pass is non-transferable.
+  </div>
 </div>
 
 <div id="toast" class="toast-msg"></div>
@@ -315,11 +324,11 @@
   function autoResizeText() {
     const el = document.querySelector('.pass-template-name');
     if (!el) return;
-    
+
     let fontSize = 26;
     el.style.fontSize = fontSize + 'px';
     el.style.lineHeight = "1.1";
-    
+
     // Safety loop to shrink font until it fits both height and width perfectly
     for (let i = 0; i < 20; i++) { // Max 20 iterations for performance
       if ((el.scrollHeight > el.offsetHeight || el.scrollWidth > el.offsetWidth) && fontSize > 10) {
@@ -330,7 +339,7 @@
       }
     }
   }
-  
+
   // High-frequency triggers to ensure it looks perfect immediately
   window.addEventListener('load', autoResizeText);
   window.addEventListener('resize', autoResizeText);
@@ -339,4 +348,4 @@
   setTimeout(autoResizeText, 300);
   setTimeout(autoResizeText, 1000);
 </script>
-{% endblock %} 
+{% endblock %}
