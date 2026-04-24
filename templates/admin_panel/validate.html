@@ -51,15 +51,20 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
-let scannerStream=null, scannerInterval=null;
+let html5QrScanner = null;
 
 function showTab(tab, evt) {
   document.querySelectorAll('.vtab').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.vtab-content').forEach(c => c.style.display = 'none');
   if (evt) evt.target.closest('.vtab').classList.add('active');
   document.getElementById('tab-' + tab).style.display = '';
+  
+  // Stop scanner if switching away from scanner tab
+  if (tab !== 'scanner' && html5QrScanner) {
+    stopScanner();
+  }
 }
 
 async function lookupPass(id) {
@@ -126,67 +131,61 @@ function showError(msg) {
   document.getElementById('result-details').innerHTML = `<p class="error-msg">${msg}</p>`;
 }
 
-async function startScanner() {
+function onScanSuccess(decodedText) {
+  console.log("Code scanned:", decodedText);
+  stopScanner();
+  
   try {
-    scannerStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}});
-    const video = document.getElementById('scanner-video');
-    video.srcObject = scannerStream;
-    video.style.display = 'block';
-    document.getElementById('start-scan-btn').style.display = 'none';
-    document.getElementById('stop-scan-btn').style.display = '';
-    const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
-    scannerInterval = setInterval(() => {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
-        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(img.data, img.width, img.height);
-        if (code) {
-          stopScanner();
-          // Robust URL matching
-          const urlString = code.data;
-          console.log("Scanned QR Data:", urlString);
-          
-          try {
-            // Check for scan visit URL: /scan/ID/PREFIX/
-            if (urlString.includes('/scan/')) {
-              const afterScan = urlString.split('/scan/')[1];
-              const parts = afterScan.split('/').filter(p => p.length > 0);
-              if (parts.length >= 2) {
-                window.location.href = `/scan/${parts[0]}/${parts[1]}/`;
-                return;
-              }
-            }
-
-            // Check for direct pass view URL: /pass/ID/
-            if (urlString.includes('/pass/')) {
-              const afterPass = urlString.split('/pass/')[1];
-              const passId = afterPass.split('/').filter(p => p.length > 0)[0];
-              if (passId) {
-                lookupPass(passId);
-                return;
-              }
-            }
-
-            // If it's just a raw ID (fallback)
-            if (urlString.length >= 8 && !urlString.includes('://')) {
-              lookupPass(urlString.toUpperCase());
-              return;
-            }
-          } catch (err) {
-            console.error("Scanner Error:", err);
-          }
-          
-          showError('Unknown QR code format');
-        }
+    if (decodedText.includes('/scan/')) {
+      const afterScan = decodedText.split('/scan/')[1];
+      const parts = afterScan.split('/').filter(p => p.length > 0);
+      if (parts.length >= 2) {
+        window.location.href = `/scan/${parts[0]}/${parts[1]}/`;
+        return;
       }
-    }, 500);
-  } catch (e) { showError('Camera access denied'); }
+    }
+    if (decodedText.includes('/pass/')) {
+      const afterPass = decodedText.split('/pass/')[1];
+      const passId = afterPass.split('/').filter(p => p.length > 0)[0];
+      if (passId) {
+        lookupPass(passId);
+        return;
+      }
+    }
+    if (decodedText.length >= 8 && !decodedText.includes('://')) {
+      lookupPass(decodedText.toUpperCase());
+      return;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  showError('Unknown QR code format');
+}
+
+function startScanner() {
+  document.getElementById('scanner-video').style.display = 'block';
+  document.getElementById('start-scan-btn').style.display = 'none';
+  document.getElementById('stop-scan-btn').style.display = '';
+
+  html5QrScanner = new Html5Qrcode("scanner-video");
+  html5QrScanner.start(
+    { facingMode: "environment" }, 
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    onScanSuccess
+  ).catch(err => {
+    console.error("Camera error:", err);
+    showError("Camera access denied or error: " + err);
+    stopScanner();
+  });
 }
 
 function stopScanner() {
-  if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
-  if (scannerInterval) { clearInterval(scannerInterval); scannerInterval = null; }
+  if (html5QrScanner) {
+    html5QrScanner.stop().then(() => {
+      html5QrScanner.clear();
+      html5QrScanner = null;
+    }).catch(err => console.error(err));
+  }
   document.getElementById('scanner-video').style.display = 'none';
   document.getElementById('start-scan-btn').style.display = '';
   document.getElementById('stop-scan-btn').style.display = 'none';
