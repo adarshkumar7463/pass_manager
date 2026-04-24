@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         from apps.locations.models import Location, AdminLocation
-        from apps.passes.models import PassTemplate, GlobalPassCounter
+        from apps.passes.models import PassTemplate, LocationPassCounter
         from django.conf import settings
         from django.utils.text import slugify
 
@@ -25,6 +25,7 @@ class Command(BaseCommand):
 
         # 2. Locations
         LOCATIONS = [
+            ('Combo Access',               'COMBO', 'Master location for all-in-one passes.'),
             ('Tip N Top Viewpoint',        'TT', 'The highest point providing breathtaking sunrise/sunset views and a popular, peaceful vantage point.'),
             ('Bhulla Tal Lake',             'BT', 'A tranquil, army-maintained man-made lake perfect for picnics, boating, and families.'),
             ('Darwan Singh Museum',         'DS', 'A well-maintained, two-story museum showcasing the history and artifacts of the Garhwal Rifles.'),
@@ -32,17 +33,22 @@ class Command(BaseCommand):
             ('Garhwal Rifles War Memorial', 'GR', 'A significant, highly-visited site dedicated to the Indian Army.'),
             ('Tarkeshwar Mahadev Temple',   'TM', 'A serene, ancient temple surrounded by thick deodar forests, located about 35 km from the main town.'),
         ]
+        
         for i, (name, prefix, desc) in enumerate(LOCATIONS):
             loc, created = Location.objects.get_or_create(
                 prefix=prefix,
                 defaults={'name': name, 'slug': slugify(name), 'description': desc, 'order': i, 'is_active': True}
             )
+            # Initialize counter for this location
+            LocationPassCounter.objects.get_or_create(location=loc)
             self.stdout.write(f"{'✅ Created' if created else 'ℹ️  Exists'}: {loc.name} ({loc.prefix})")
 
         # 3. Combo template
-        template = PassTemplate.objects.first()
+        combo_loc = Location.objects.get(prefix='COMBO')
+        template = PassTemplate.objects.filter(location=combo_loc).first()
         if not template:
             template = PassTemplate.objects.create(
+                location=combo_loc,
                 name='All-Locations Combo Pass',
                 discount_percent=10,
                 total_price=600,
@@ -56,11 +62,9 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f"ℹ️  Template exists: {template.name}")
 
-        # 4. Initialize counter
-        GlobalPassCounter.objects.get_or_create(pk=1)
-
-        # 5. Create one location admin per location
+        # 4. Create one location admin per location (except COMBO)
         for name, prefix, desc in LOCATIONS:
+            if prefix == 'COMBO': continue
             loc = Location.objects.get(prefix=prefix)
             username = f"admin_{prefix.lower()}"
             if not User.objects.filter(username=username).exists():
@@ -74,6 +78,6 @@ class Command(BaseCommand):
             f"\n🚀 Setup complete!\n"
             f"   Superadmin:     {options['username']} / {options['password']}\n"
             f"   Location admins: admin_tt, admin_bt, admin_ds, admin_sm, admin_gr, admin_tm (same password)\n"
-            f"   Admin URL:      http://localhost:8000/admin-panel/login/\n"
-            f"   Pass URL:       http://localhost:8000/generate-pass/{template.id}/\n"
+            f"   Admin URL:      /admin-panel/login/\n"
+            f"   Pass URL:       /generate-pass/{template.id}/\n"
         ))
