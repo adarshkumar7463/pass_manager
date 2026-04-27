@@ -26,6 +26,7 @@ def location_create(request):
         description = request.POST.get('description', '').strip()
         address = request.POST.get('address', '').strip()
         prefix = request.POST.get('prefix', '').strip().upper()
+        price = request.POST.get('price', '0.00')
         image = request.FILES.get('image')
 
         if not name or not prefix:
@@ -42,7 +43,7 @@ def location_create(request):
 
             loc = Location.objects.create(
                 name=name, slug=slug, description=description,
-                address=address, prefix=prefix,
+                address=address, prefix=prefix, price=price,
                 image=image if image else None
             )
             messages.success(request, f'Location "{loc.name}" created successfully.')
@@ -62,6 +63,7 @@ def location_edit(request, pk):
         location.name = request.POST.get('name', location.name).strip()
         location.description = request.POST.get('description', location.description).strip()
         location.address = request.POST.get('address', location.address).strip()
+        location.price = request.POST.get('price', location.price)
         if request.FILES.get('image'):
             location.image = request.FILES['image']
         location.save()

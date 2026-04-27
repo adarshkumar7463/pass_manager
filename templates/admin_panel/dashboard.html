@@ -4,7 +4,7 @@
 
 {% block header_actions %}
 {% if not is_location_admin %}
-<a href="{% url 'passes:template_create' %}" class="btn-primary-sm"><i class="fas fa-plus"></i> New Template</a>
+<a href="{% url 'passes:template_create' %}" class="btn-primary-sm"><i class="fas fa-plus"></i> Generate Pass</a>
 {% endif %}
 {% endblock %}
 
@@ -12,48 +12,65 @@
 
 {% if is_location_admin %}
   <!-- ── LOCATION ADMIN VIEW ── -->
+  {% if location.image %}
+  <div class="location-hero" style="background-image: linear-gradient(to right, rgba(13, 14, 23, 0.9) 20%, rgba(13, 14, 23, 0.2) 100%), url('{{ location.image.url }}'); background-size: cover; background-position: center; padding: 40px 30px; border-radius: 16px; margin-bottom: 28px; border: 1px solid var(--border); position: relative; overflow: hidden;">
+    <div class="hero-content" style="position: relative; z-index: 2;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <span class="badge badge-loc" style="font-family: var(--font-mono); font-size: 12px; padding: 4px 12px; background: var(--accent); color: #fff; border: none;">{{ location.prefix }}</span>
+        <span style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Location Portal</span>
+      </div>
+      <h1 style="font-family: var(--font-display); font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">{{ location.name }}</h1>
+      <p style="color: var(--text-secondary); font-size: 14px; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-map-marker-alt" style="color: var(--accent);"></i>
+        {{ location.address|default:"Lansdowne, Uttarakhand" }}
+      </p>
+    </div>
+    <!-- Glassmorphism accent -->
+    <div style="position: absolute; top: 0; right: 0; width: 40%; height: 100%; background: linear-gradient(45deg, transparent, rgba(124, 77, 255, 0.1)); pointer-events: none;"></div>
+  </div>
+  {% else %}
   <div class="location-badge-bar">
     <i class="fas fa-map-marker-alt"></i>
     <strong>{{ location.name }}</strong>
     <span class="badge badge-loc">{{ location.prefix }}</span>
   </div>
-
+  {% endif %}
   <div class="stats-grid">
-    <div class="stat-card stat-total">
+    <a href="{% url 'passes:passes_list' %}" class="stat-card stat-total">
       <div class="stat-icon"><i class="fas fa-id-card"></i></div>
       <div class="stat-info">
         <div class="stat-value">{{ stats.total }}</div>
         <div class="stat-label">Total Passes</div>
       </div>
-    </div>
-    <div class="stat-card stat-active">
+    </a>
+    <a href="{% url 'passes:passes_list' %}?visit_status=DONE" class="stat-card stat-active">
       <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
       <div class="stat-info">
         <div class="stat-value">{{ stats.done }}</div>
         <div class="stat-label">Checked-In</div>
       </div>
-    </div>
-    <div class="stat-card stat-expired">
+    </a>
+    <a href="{% url 'passes:passes_list' %}?visit_status=PENDING" class="stat-card stat-expired">
       <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
       <div class="stat-info">
         <div class="stat-value">{{ stats.pending }}</div>
         <div class="stat-label">Pending</div>
       </div>
-    </div>
-    <div class="stat-card stat-used">
+    </a>
+    <a href="{% url 'passes:passes_list' %}?visit_date=today" class="stat-card stat-used">
       <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
       <div class="stat-info">
         <div class="stat-value">{{ stats.today }}</div>
         <div class="stat-label">Today</div>
       </div>
-    </div>
+    </a>
   </div>
 
   <div class="section-header"><h2>Recent Check-Ins at {{ location.name }}</h2></div>
   <div class="table-card">
     <table class="data-table">
       <thead>
-        <tr><th>Pass ID</th><th>Visitor</th><th>Checked-In At</th><th>Amount</th><th>Method</th></tr>
+        <tr><th>Pass ID</th><th>Visitor</th><th>Checked-In At</th></tr>
       </thead>
       <tbody>
         {% for v in recent_visits %}
@@ -61,8 +78,8 @@
           <td><code class="pass-id">{{ v.pass_obj.unique_id }}</code></td>
           <td>{{ v.pass_obj.full_name }}</td>
           <td>{{ v.visited_at|date:"d M, g:i A" }}</td>
-          <td>{% if v.amount_paid %}₹{{ v.amount_paid }}{% else %}—{% endif %}</td>
-          <td>{{ v.payment_method|default:"—" }}</td>
+          {% comment %} <td>₹{{ v.pass_obj.payment.amount_paid|floatformat:0 }}</td>
+          <td>{{ v.pass_obj.payment.payment_method }}</td> {% endcomment %}
         </tr>
         {% empty %}
         <tr><td colspan="5" class="empty-row">No check-ins yet.</td></tr>
@@ -70,60 +87,60 @@
       </tbody>
     </table>
   </div>
-
 {% else %}
   <!-- ── SUPERADMIN VIEW ── -->
   <div class="stats-grid">
-    <div class="stat-card stat-total">
+    <a href="{% url 'passes:passes_list' %}" class="stat-card stat-total">
       <div class="stat-icon"><i class="fas fa-id-card"></i></div>
       <div class="stat-info">
         <div class="stat-value">{{ total_passes }}</div>
         <div class="stat-label">Total Passes</div>
       </div>
-    </div>
-    <div class="stat-card stat-active">
+    </a>
+    <a href="{% url 'passes:passes_list' %}?status=ACTIVE" class="stat-card stat-active">
       <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
       <div class="stat-info">
         <div class="stat-value">{{ active_passes }}</div>
         <div class="stat-label">Active Passes</div>
       </div>
-    </div>
-    <div class="stat-card stat-used">
+    </a>
+    <a href="{% url 'passes:passes_list' %}?status=USED" class="stat-card stat-used">
       <div class="stat-icon"><i class="fas fa-trophy"></i></div>
       <div class="stat-info">
         <div class="stat-value">{{ expired_passes }}</div>
-        <div class="stat-label">Completed (6/6)</div>
+        <div class="stat-label">Expired</div>
       </div>
-    </div>
-    <div class="stat-card stat-expired">
+    </a>
+    <a href="{% url 'passes:analytics' %}" class="stat-card stat-expired">
       <div class="stat-icon"><i class="fas fa-map-marker-check"></i></div>
       <div class="stat-info">
-        <div class="stat-value">{{ done_visits }}/{{ total_visits }}</div>
+        <div class="stat-value" style="font-size: 20px;">{{ done_visits }} / {{ total_visits }}</div>
         <div class="stat-label">Visits Done</div>
       </div>
-    </div>
+    </a>
   </div>
 
   <div class="section-header"><h2>Locations</h2></div>
   <div class="locations-grid">
     {% for ls in loc_stats %}
-    <div class="location-card">
+    <div class="location-card" onclick="window.location.href='{% url 'locations:edit' ls.location.id %}'" style="cursor: pointer;">
       {% if ls.location.image %}
-      <div class="location-img" style="background-image:url('{{ ls.location.image.url }}')"></div>
+      <div class="location-img" style="background-image:url('{{ ls.location.image.url }}'); height: 100px;"></div>
       {% else %}
-      <div class="location-img location-img-placeholder"><i class="fas fa-map-marker-alt"></i></div>
+      <div class="location-img location-img-placeholder" style="height: 100px;"><i class="fas fa-map-marker-alt"></i></div>
       {% endif %}
-      <div class="location-body">
-        <div class="location-prefix">{{ ls.location.prefix }}</div>
-        <div class="location-name">{{ ls.location.name }}</div>
-        <div class="location-desc">{{ ls.location.description|truncatechars:60 }}</div>
-        <div class="location-stats">
-          <span><i class="fas fa-check"></i> {{ ls.done }} done</span>
-          <span><i class="fas fa-id-card"></i> {{ ls.total }} total</span>
+      <div class="location-body" style="padding: 10px;">
+        <div class="location-prefix" style="font-size: 10px; padding: 1px 6px;">{{ ls.location.prefix }}</div>
+        <div class="location-name" style="font-size: 14px;">{{ ls.location.name }}</div>
+        <div class="location-desc" style="font-size: 11px; margin-bottom: 5px;">{{ ls.location.description|truncatechars:50 }}</div>
+        <div class="location-stats" style="font-size: 11px; display: flex; flex-direction: row; gap: 12px; margin-bottom: 8px;">
+          <span><i class="fas fa-tag" style="color: var(--accent);"></i> ₹{{ ls.location.price }}</span>
+          <span><i class="fas fa-check-circle" style="color: var(--green);"></i> {{ ls.done }}</span>
+          <span><i class="fas fa-id-card" style="color: var(--blue);"></i> {{ ls.total }}</span>
         </div>
-        <div class="location-actions">
-          <a href="{% url 'locations:edit' ls.location.id %}" class="btn-ghost-sm" title="Edit"><i class="fas fa-edit"></i></a>
-          <a href="{% url 'locations:delete' ls.location.id %}" class="btn-danger-sm" title="Delete" onclick="return confirm('Are you sure? This will delete all templates and passes for this location!')">
+        <div class="location-actions" style="margin-top: 10px; padding-top: 8px;">
+          <a href="{% url 'locations:edit' ls.location.id %}" class="btn-ghost-sm" title="Edit" style="padding: 4px 8px; font-size: 11px;"><i class="fas fa-edit"></i></a>
+          <a href="{% url 'locations:delete' ls.location.id %}" class="btn-danger-sm" title="Delete" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation(); return confirm('Are you sure? This will delete all templates and passes for this location!')">
             <i class="fas fa-trash"></i>
           </a>
         </div>
@@ -132,18 +149,18 @@
     {% endfor %}
   </div>
 
-  <div class="section-header" style="margin-top:2rem"><h2>Combo Template</h2></div>
+  <div class="section-header" style="margin-top:2rem"><h2>Pass Batches</h2></div>
   <div class="table-card">
     <table class="data-table">
       <thead>
-        <tr><th>Template</th><th>Price</th><th>Discount</th><th>Passes</th><th>Status</th><th></th></tr>
+        <tr><th>Batch Name</th><th>Location</th><th>Created</th><th>Passes</th><th>Status</th><th>Actions</th></tr>
       </thead>
       <tbody>
         {% for t in templates %}
         <tr>
           <td><strong>{{ t.name }}</strong></td>
-          <td>₹{{ t.total_price }}</td>
-          <td>{{ t.discount_percent }}%</td>
+          <td>{{ t.location.prefix }}</td>
+          <td>{{ t.created_at|date:"d M" }}</td>
           <td>{{ t.passes_count }}{% if t.access_limit %}/{{ t.access_limit }}{% endif %}</td>
           <td>
             {% if t.is_active %}<span class="badge badge-active">Active</span>
@@ -153,7 +170,7 @@
         </tr>
         {% empty %}
         <tr><td colspan="6" class="empty-row">
-          No template yet. <a href="{% url 'passes:template_create' %}">Create the combo template</a>
+          No batches yet. <a href="{% url 'passes:template_create' %}">Generate a combo pass</a>
         </td></tr>
         {% endfor %}
       </tbody>

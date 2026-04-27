@@ -11,9 +11,9 @@
     </div>
     <select name="status" onchange="this.form.submit()">
       <option value="">All Status</option>
-      <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>Active</option>
-      <option value="USED" {% if status_filter == 'USED' %}selected{% endif %}>Used</option>
-      <option value="EXPIRED" {% if status_filter == 'EXPIRED' %}selected{% endif %}>Expired</option>
+      <option value="ACTIVE" {% if status_filter=='ACTIVE' %}selected{% endif %}>Active</option>
+      <option value="USED" {% if status_filter=='USED' %}selected{% endif %}>Used</option>
+      <option value="EXPIRED" {% if status_filter=='EXPIRED' %}selected{% endif %}>Expired</option>
     </select>
     <button type="submit" class="btn-primary-sm"><i class="fas fa-filter"></i> Filter</button>
     {% if search or status_filter %}
@@ -25,7 +25,16 @@
 <div class="table-card">
   <table class="data-table">
     <thead>
-      <tr><th>Pass ID</th><th>Name</th><th>Phone</th><th>Location</th><th>Price</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+      <tr>
+        <th>Pass ID</th>
+        <th>Name</th>
+        {% comment %} <th>Phone</th> {% endcomment %}
+        <th>Location</th>
+        <th>Price</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
     </thead>
     <tbody>
       {% for p in passes %}
@@ -37,19 +46,26 @@
         <td>₹{{ p.template.total_price }}</td>
         <td>{{ p.created_at|date:"d M Y" }}</td>
         <td>
-          <span class="badge {% if p.status == 'ACTIVE' %}badge-active{% elif p.status == 'EXPIRED' %}badge-expired{% else %}badge-used{% endif %}">
+          <span
+            class="badge {% if p.status == 'ACTIVE' %}badge-active{% elif p.status == 'EXPIRED' %}badge-expired{% else %}badge-used{% endif %}">
             {{ p.status }}
           </span>
         </td>
         <td class="actions-cell">
-          <a href="{% url 'passes:view_pass' p.unique_id %}" target="_blank" class="icon-btn" title="View Pass"><i class="fas fa-eye"></i></a>
-          {% if p.status == 'ACTIVE' %}
-          <button onclick="quickExpire('{{ p.unique_id }}')" class="icon-btn danger" title="Expire"><i class="fas fa-times"></i></button>
-          {% endif %}
+          <div class="action-group" style="display:flex;gap:5px;">
+            <a href="{% url 'passes:view_pass' p.unique_id %}" target="_blank" class="btn-ghost-sm" title="View"><i class="fas fa-eye"></i></a>
+            <a href="{% url 'passes:pass_pdf' p.unique_id %}" class="btn-primary-sm" title="Download PDF"><i class="fas fa-download"></i></a>
+            <button onclick="printSinglePass('{{ p.unique_id }}')" class="btn-secondary-sm" title="Print"><i class="fas fa-print"></i></button>
+            {% if p.status == 'ACTIVE' %}
+            <button onclick="quickExpire('{{ p.unique_id }}')" class="btn-danger-sm" title="Expire"><i class="fas fa-times"></i></button>
+            {% endif %}
+          </div>
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="8" class="empty-row">No passes found.</td></tr>
+      <tr>
+        <td colspan="8" class="empty-row">No passes found.</td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
@@ -58,12 +74,15 @@
 
 {% block extra_js %}
 <script>
-async function quickExpire(id) {
-  if (!confirm(`Expire pass ${id}?`)) return;
-  const res = await fetch(`/admin-panel/passes/${id}/expire/`, {
-    method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}
-  });
-  if (res.ok) { showToast('Pass expired'); location.reload(); }
-}
+  async function quickExpire(id) {
+    if (!confirm(`Expire pass ${id}?`)) return;
+    const res = await fetch(`/admin-panel/passes/${id}/expire/`, {
+      method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    });
+    if (res.ok) { showToast('Pass expired'); location.reload(); }
+  }
+  function printSinglePass(id) {
+    window.open(`/pass/${id}/print/`, '_blank');
+  }
 </script>
 {% endblock %}

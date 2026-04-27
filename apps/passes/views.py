@@ -112,6 +112,17 @@ def view_pass(request, unique_id):
     return render(request, 'passes/view_pass.html', {
         'pass_obj': pass_obj,
         'visits': visits,
+        'is_print': False,
+    })
+
+
+def print_pass(request, unique_id):
+    pass_obj = get_object_or_404(Pass, unique_id=unique_id)
+    visits = pass_obj.visits.all().select_related('location')
+    return render(request, 'passes/view_pass.html', {
+        'pass_obj': pass_obj,
+        'visits': visits,
+        'is_print': True,
     })
 
 
@@ -120,71 +131,233 @@ def pass_pdf(request, unique_id):
     try:
         from reportlab.pdfgen import canvas
         from reportlab.lib.pagesizes import A6
-        from reportlab.lib import colors
         from reportlab.lib.units import mm
         from io import BytesIO
-        from django.core.files.storage import default_storage
 
         buf = BytesIO()
-        c = canvas.Canvas(buf, pagesize=A6)
-        w, h = A6
-
-        # Background
-        c.setFillColorRGB(0.1, 0.1, 0.18)
-        c.rect(0, 0, w, h, fill=1, stroke=0)
-
-        # Header band
-        c.setFillColorRGB(0.4, 0.2, 0.8)
-        c.rect(0, h - 30*mm, w, 30*mm, fill=1, stroke=0)
-
-        c.setFillColorRGB(1, 1, 1)
-        c.setFont("Helvetica-Bold", 16)
-        c.drawCentredString(w/2, h - 18*mm, pass_obj.location.name)
-        c.setFont("Helvetica", 9)
-        c.drawCentredString(w/2, h - 25*mm, "ENTRY PASS")
-
-        # Unique ID
-        c.setFillColorRGB(0.4, 0.8, 1)
-        c.setFont("Helvetica-Bold", 28)
-        c.drawCentredString(w/2, h - 48*mm, pass_obj.unique_id)
-
-        # Details
-        c.setFillColorRGB(1, 1, 1)
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(10*mm, h - 62*mm, f"Name: {pass_obj.full_name}")
-        c.setFont("Helvetica", 9)
-        c.drawString(10*mm, h - 70*mm, f"Phone: {pass_obj.phone}")
-
-        c.setFont("Helvetica-Bold", 11)
-        c.setFillColorRGB(0.4, 0.8, 1)
-        c.drawString(10*mm, h - 82*mm, f"Discount: {pass_obj.template.discount_percent}%")
-        c.drawString(10*mm, h - 90*mm, f"Price: {pass_obj.template.total_price}")
-
-        # Status badge
-        if pass_obj.status == 'ACTIVE':
-            c.setFillColorRGB(0.2, 0.8, 0.4)
-        else:
-            c.setFillColorRGB(0.9, 0.2, 0.2)
-        c.roundRect(w/2 - 20*mm, h - 96*mm, 40*mm, 10*mm, 2*mm, fill=1, stroke=0)
-        c.setFillColorRGB(1, 1, 1)
-        c.setFont("Helvetica-Bold", 10)
-        c.drawCentredString(w/2, h - 90*mm, pass_obj.status)
-
-        # Payment note
-        c.setFillColorRGB(0.8, 0.8, 0.8)
-        c.setFont("Helvetica", 8)
-        c.drawCentredString(w/2, 8*mm, pass_obj.template.payment_note)
-
-        c.showPage()
+        from reportlab.lib.pagesizes import landscape
+        c = canvas.Canvas(buf, pagesize=landscape(A6))
+        _draw_pass_page(c, pass_obj, request)
         c.save()
         buf.seek(0)
 
         response = HttpResponse(buf, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="pass_{pass_obj.unique_id}.pdf"'
         return response
-    except ImportError:
-        messages.error(request, 'PDF generation requires reportlab. Please install it.')
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        messages.error(request, f'PDF generation failed: {e}')
         return redirect('passes:view_pass', unique_id=unique_id)
+
+
+@login_required
+def bulk_print_view(request, template_id):
+    template = get_object_or_404(PassTemplate, id=template_id)
+    passes = template.passes.all().prefetch_related('visits__location')
+    return render(request, 'admin_panel/bulk_print.html', {
+        'template': template,
+        'passes': passes,
+    })
+
+
+@login_required
+def bulk_pass_pdf(request, template_id):
+    template = get_object_or_404(PassTemplate, id=template_id)
+    passes = template.passes.all().prefetch_related('visits__location')
+    
+    try:
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib.units import mm
+        from io import BytesIO
+
+        buf = BytesIO()
+        c = canvas.Canvas(buf, pagesize=landscape(A4))
+        w, h = landscape(A4)
+        
+        # Grid settings for 2 columns, 2 rows (4 per page)
+        cols = 2
+        rows = 2
+        margin_x = 0.5*mm # Minimal margin for 296/297 fit
+        margin_y = 0*mm 
+        cell_w = 148.5*mm
+        cell_h = 105*mm
+        
+        # Scale factor: 1.0 because A6 (148x105) * 2 matches A4 (297x210)
+        scale = 1.0
+        
+        for i, pass_obj in enumerate(passes):
+            if i > 0 and i % 4 == 0:
+                c.showPage()
+            
+            idx = i % 4
+            col = idx % cols
+            row = idx // cols # 0 or 1
+            
+            # Position (Reportlab (0,0) is bottom left)
+            px = margin_x + col * cell_w
+            py = h - margin_y - (row + 1) * cell_h
+            
+            c.saveState()
+            c.translate(px, py)
+            c.scale(scale, scale)
+            _draw_pass_content(c, pass_obj, request)
+            c.restoreState()
+            
+        c.save()
+        buf.seek(0)
+
+        response = HttpResponse(buf, content_type='application/pdf')
+        filename = f"batch_{template_id}_passes.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        messages.error(request, f'Bulk PDF generation failed: {e}')
+        return redirect('passes:template_detail', pk=template_id)
+
+
+def _draw_pass_page(c, pass_obj, request):
+    # Single pass view still uses A6 Landscape
+    from reportlab.lib.pagesizes import A6, landscape
+    _draw_pass_content(c, pass_obj, request)
+
+
+def _draw_pass_content(c, pass_obj, request):
+    from reportlab.lib.pagesizes import A6, landscape
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    import qrcode
+    from io import BytesIO
+    from reportlab.lib.utils import ImageReader
+
+    # Base dimensions: 148mm wide, 105mm high
+    w, h = landscape(A6)
+    
+    # 1. Sidebar (Dark)
+    sidebar_w = 40*mm
+    c.setFillColorRGB(0.12, 0.12, 0.18) 
+    c.rect(0, 0, sidebar_w, h, fill=1, stroke=0)
+    
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(sidebar_w/2, h - 10*mm, "COMBO PASS")
+    
+    c.saveState()
+    c.translate(sidebar_w/2, h/2)
+    c.rotate(90)
+    c.setFont("Helvetica-Bold", 18)
+    c.drawCentredString(0, -5*mm, pass_obj.template.name.upper())
+    c.restoreState()
+    
+    c.setFont("Helvetica-Bold", 8)
+    c.drawCentredString(sidebar_w/2, 10*mm, "ALL LOCATIONS")
+
+    # 2. Main Area
+    main_x = sidebar_w
+    main_w = w - sidebar_w
+    c.setFillColorRGB(0.98, 0.98, 1.0) 
+    c.rect(main_x, 0, main_w, h, fill=1, stroke=0)
+    
+    c.setFillColorRGB(0.4, 0.3, 0.8) 
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(main_x + 10*mm, h - 15*mm, pass_obj.unique_id)
+    
+    c.saveState()
+    status_text = f"{pass_obj.visits_done}/{pass_obj.total_locations} VISITED"
+    c.setFillColorRGB(0.9, 1.0, 0.9)
+    c.roundRect(w - 35*mm, h - 17*mm, 25*mm, 6*mm, 2*mm, fill=1, stroke=0)
+    c.setFillColorRGB(0.1, 0.4, 0.2)
+    c.setFont("Helvetica-Bold", 7)
+    c.drawCentredString(w - 22.5*mm, h - 13*mm, status_text)
+    c.restoreState()
+
+    c.setStrokeColorRGB(0.9, 0.9, 0.9)
+    c.line(main_x + 10*mm, h - 22*mm, w - 10*mm, h - 22*mm)
+
+    info_w = 45*mm
+    qr_grid_x = main_x + info_w + 5*mm
+    
+    c.setFillColorRGB(0.5, 0.5, 0.6)
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(main_x + 10*mm, h - 30*mm, "HOLDER")
+    c.setFillColorRGB(0.3, 0.2, 0.7)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(main_x + 10*mm, h - 35*mm, pass_obj.full_name)
+    
+    c.setFillColorRGB(0.5, 0.5, 0.6)
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(main_x + 10*mm, h - 45*mm, "PHONE")
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 9)
+    c.drawString(main_x + 10*mm, h - 50*mm, pass_obj.phone)
+
+    c.setFillColorRGB(0.5, 0.5, 0.6)
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(main_x + 10*mm, h - 60*mm, "ISSUED")
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica", 9)
+    c.drawString(main_x + 10*mm, h - 65*mm, pass_obj.created_at.strftime("%d %b %Y"))
+
+    c.setFillColorRGB(0.95, 1.0, 0.95)
+    c.roundRect(main_x + 8*mm, 5*mm, info_w, 15*mm, 2*mm, fill=1, stroke=0)
+    c.setFillColorRGB(0.1, 0.4, 0.2)
+    c.setFont("Helvetica-Bold", 6)
+    c.drawString(main_x + 10*mm, 16*mm, f"PRICE: ₹{pass_obj.template.total_price}")
+    c.setFont("Helvetica-Bold", 5)
+    c.drawString(main_x + 10*mm, 12*mm, "PAYMENT NOTE")
+    c.setFont("Helvetica", 5)
+    c.drawString(main_x + 10*mm, 9*mm, "Payment will be done at counter")
+
+    # 4. QR Grid
+    visits = list(pass_obj.visits.all().select_related('location'))
+    qr_size = 18*mm
+    gap = 2*mm
+    
+    c.setFillColorRGB(0.4, 0.3, 0.8)
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(qr_grid_x, h - 30*mm, "SHOW QR AT COUNTER")
+    
+    for i, visit in enumerate(visits):
+        row = i // 3
+        col = i % 3
+        qx = qr_grid_x + col * (qr_size + gap)
+        qy = h - 40*mm - row * (qr_size + 10*mm)
+        
+        c.setStrokeColorRGB(0.9, 0.9, 0.9)
+        c.roundRect(qx, qy, qr_size, qr_size + 5*mm, 1*mm, stroke=1, fill=0)
+        
+        c.setFillColorRGB(0.4, 0.3, 0.8)
+        c.setFont("Helvetica-Bold", 5)
+        c.drawCentredString(qx + qr_size/2, qy + qr_size + 2*mm, visit.location.prefix)
+        
+        c.setFillColor(colors.black)
+        c.setFont("Helvetica", 4)
+        c.drawCentredString(qx + qr_size/2, qy + qr_size - 1*mm, visit.location.name[:15])
+
+        base_url = f"{request.scheme}://{request.get_host()}"
+        scan_url = f"{base_url}/scan/{pass_obj.unique_id}/{visit.location.prefix}/"
+        
+        qr = qrcode.QRCode(version=1, box_size=5, border=1)
+        qr.add_data(scan_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        qr_buf = BytesIO()
+        img.save(qr_buf, format='PNG')
+        qr_buf.seek(0)
+        c.drawImage(ImageReader(qr_buf), qx + 1*mm, qy + 1*mm, width=qr_size - 2*mm, height=qr_size - 2*mm)
+
+        
+        if visit.status == 'DONE':
+            c.setStrokeColor(colors.green)
+            c.setLineWidth(1)
+            c.line(qx, qy, qx + qr_size, qy + qr_size + 5*mm)
+            c.line(qx, qy + qr_size + 5*mm, qx + qr_size, qy)
+
+
 
 
 # ─── ADMIN: VALIDATE PASS ──────────────────────────────────────────────────────
@@ -192,7 +365,11 @@ def pass_pdf(request, unique_id):
 @login_required
 def validate_pass_page(request):
     location = get_active_admin_location(request)
-    return render(request, 'admin_panel/validate.html', {'location': location})
+    user_prefixes = list(request.user.admin_locations.values_list('location__prefix', flat=True))
+    return render(request, 'admin_panel/validate.html', {
+        'location': location,
+        'user_prefixes': json.dumps(user_prefixes)
+    })
 
 
 @login_required
@@ -314,6 +491,10 @@ def admin_dashboard(request):
                 'done': Pass.objects.filter(template__location=loc, status='USED').count(),
             })
             
+        from .models import PassVisit
+        total_visits = PassVisit.objects.count()
+        done_visits = PassVisit.objects.filter(status='DONE').count()
+            
         return render(request, 'admin_panel/dashboard.html', {
             'is_location_admin': False,
             'locations': locations,
@@ -323,21 +504,42 @@ def admin_dashboard(request):
             'active_passes': active_passes,
             'expired_passes': expired_passes,
             'used_passes': used_passes,
-            'total_visits': total_passes * 6, # approximate
-            'done_visits': used_passes,
+            'total_visits': total_visits,
+            'done_visits': done_visits,
         })
     else:
         location = request.user.admin_locations.first().location if request.user.admin_locations.exists() else None
         location_ids = request.user.admin_locations.values_list('location_id', flat=True)
         locations = Location.objects.filter(id__in=location_ids)
-        templates = PassTemplate.objects.filter(location__in=locations).select_related('location')[:10]
         
-        total_passes = Pass.objects.filter(template__location__in=locations).count()
-        active_passes = Pass.objects.filter(template__location__in=locations, status='ACTIVE').count()
-        expired_passes = Pass.objects.filter(template__location__in=locations, status='EXPIRED').count()
-        used_passes = Pass.objects.filter(template__location__in=locations, status='USED').count()
-
-        recent_visits = PaymentRecord.objects.filter(pass_obj__template__location=location).order_by('-created_at')[:10] if location else []
+        from .models import PassVisit
+        # Total passes = passes for this location + all COMBO passes
+        from django.db.models import Q
+        all_passes = Pass.objects.filter(
+            Q(template__location__in=locations) | 
+            Q(template__location__prefix='COMBO')
+        )
+        
+        total_passes_count = all_passes.count()
+        
+        # Visits stats for THIS specific location
+        if location:
+            done_count = PassVisit.objects.filter(location=location, status='DONE').count()
+            pending_count = PassVisit.objects.filter(location=location, status='PENDING').count()
+            today_count = PassVisit.objects.filter(
+                location=location, 
+                status='DONE', 
+                visited_at__date=timezone.now().date()
+            ).count()
+            recent_visits = PassVisit.objects.filter(
+                location=location, 
+                status='DONE'
+            ).select_related('pass_obj', 'pass_obj__payment').order_by('-visited_at')[:10]
+        else:
+            done_count = pending_count = today_count = 0
+            recent_visits = []
+            
+        templates = PassTemplate.objects.filter(location__in=locations).select_related('location')[:10]
         
         return render(request, 'admin_panel/dashboard.html', {
             'is_location_admin': True,
@@ -345,16 +547,17 @@ def admin_dashboard(request):
             'locations': locations,
             'templates': templates,
             'stats': {
-                'total': total_passes,
-                'done': used_passes,
-                'pending': active_passes,
-                'today': Pass.objects.filter(template__location=location, created_at__date=timezone.now().date()).count() if location else 0
+                'total': total_passes_count,
+                'done': done_count,
+                'pending': pending_count,
+                'today': today_count
             },
             'recent_visits': recent_visits,
         })
 
 
 @login_required
+@transaction.atomic
 def template_create(request):
     from apps.locations.models import Location
     if request.user.is_superuser:
@@ -366,9 +569,12 @@ def template_create(request):
     if request.method == 'POST':
         loc_id = request.POST.get('location')
         name = request.POST.get('name', '').strip()
-        discount = request.POST.get('discount_percent', '0')
-        price = request.POST.get('total_price', '0')
-        access_limit = request.POST.get('access_limit', '').strip()
+        quantity = int(request.POST.get('quantity', '1'))
+        discount_percent = request.POST.get('discount_percent', '0')
+        try:
+            discount_percent = float(discount_percent)
+        except ValueError:
+            discount_percent = 0
         internal_notes = request.POST.get('internal_notes', '').strip()
 
         try:
@@ -377,21 +583,57 @@ def template_create(request):
             messages.error(request, 'Invalid location selected.')
             return render(request, 'admin_panel/template_form.html', {'locations': locations})
 
+        # Calculate price based on location price and discount
+        price = float(location.price)
+        if discount_percent > 0:
+            price = price * (1 - (discount_percent / 100))
+
+        # Create the Batch (PassTemplate)
         template = PassTemplate.objects.create(
             location=location,
             name=name,
-            discount_percent=float(discount),
-            total_price=float(price),
-            access_limit=int(access_limit) if access_limit else None,
+            discount_percent=discount_percent,
+            total_price=price,
+            access_limit=quantity,
             internal_notes=internal_notes,
         )
 
+        # Generate QR for the batch (though users will likely use individual passes)
         try:
             template.generate_qr(settings.SITE_URL)
         except Exception as e:
-            messages.warning(request, f'Template created but QR generation failed: {e}')
+            pass
 
-        messages.success(request, f'Pass template "{template.name}" created with QR code.')
+        # Now generate the actual passes
+        from .models import PassVisit
+        counter, _ = LocationPassCounter.objects.get_or_create(location=location)
+        
+        for i in range(quantity):
+            unique_id = counter.next_id()
+            pass_obj = Pass.objects.create(
+                template=template,
+                unique_id=unique_id,
+                full_name=f"Pass {unique_id}",
+                phone="N/A",
+                address="Generated in bulk",
+                status='ACTIVE',
+            )
+
+            # Create visits
+            if location.prefix == 'COMBO':
+                all_locs = Location.objects.filter(is_active=True).exclude(prefix='COMBO')
+                for loc in all_locs:
+                    PassVisit.objects.create(pass_obj=pass_obj, location=loc)
+            else:
+                PassVisit.objects.create(pass_obj=pass_obj, location=location)
+
+            # Generate QR for each pass
+            try:
+                pass_obj.generate_pass_qr(settings.SITE_URL)
+            except Exception:
+                pass
+
+        messages.success(request, f'Successfully generated {quantity} passes for "{template.name}".')
         return redirect('passes:template_detail', pk=template.id)
 
     return render(request, 'admin_panel/template_form.html', {'locations': locations})
@@ -451,10 +693,17 @@ def template_delete(request, pk):
 @login_required
 def passes_list(request):
     from apps.locations.models import Location
+    from .models import PassVisit
+    from django.db.models import Q
+    
+    visit_status = request.GET.get('visit_status', '')
+    visit_date = request.GET.get('visit_date', '')
+    status_filter = request.GET.get('status', '')
+    search = request.GET.get('q', '')
+
     if request.user.is_superuser:
         passes = Pass.objects.select_related('template__location').all()
     else:
-        from django.db.models import Q
         location_ids = request.user.admin_locations.values_list('location_id', flat=True)
         # Show my location passes OR all COMBO passes
         passes = Pass.objects.filter(
@@ -462,14 +711,29 @@ def passes_list(request):
             Q(template__location__prefix='COMBO')
         ).select_related('template__location')
 
-    status_filter = request.GET.get('status', '')
-    search = request.GET.get('q', '')
+        # Filter by visit status if requested (for location admins)
+        if visit_status or visit_date:
+            location = request.user.admin_locations.first().location
+            visits = PassVisit.objects.filter(location=location)
+            if visit_status:
+                visits = visits.filter(status=visit_status)
+            if visit_date == 'today':
+                visits = visits.filter(visited_at__date=timezone.now().date())
+            
+            passes = passes.filter(visits__in=visits).distinct()
+
     if status_filter:
         passes = passes.filter(status=status_filter)
     if search:
         passes = passes.filter(unique_id__icontains=search) | passes.filter(full_name__icontains=search)
 
-    return render(request, 'admin_panel/passes_list.html', {'passes': passes, 'status_filter': status_filter, 'search': search})
+    return render(request, 'admin_panel/passes_list.html', {
+        'passes': passes, 
+        'status_filter': status_filter, 
+        'search': search,
+        'visit_status': visit_status,
+        'visit_date': visit_date
+    })
 
 
 @login_required
@@ -532,6 +796,16 @@ def scan_visit_page(request, unique_id, prefix):
     from apps.locations.models import Location
     location = get_object_or_404(Location, prefix=prefix)
     
+    # Permission check: Admin must be assigned to THIS location
+    allowed = request.user.is_superuser or request.user.admin_locations.filter(location=location).exists()
+    
+    if not allowed:
+        return render(request, 'passes/scan_visit.html', {
+            'error': 'Access Denied: You are not authorized to check-in for this location.',
+            'location': location,
+            'pass_obj': pass_obj,
+        })
+
     from .models import PassVisit
     visit = PassVisit.objects.filter(pass_obj=pass_obj, location=location).first()
     already_done = visit.status == 'DONE' if visit else False
