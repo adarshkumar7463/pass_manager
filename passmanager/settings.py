@@ -4,7 +4,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-production-xK9mP2nL8qR5')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.railway.app,.render.com,.onrender.com').split(',')
+ALLOWED_HOSTS = [
+    "qr-pass-manager.com",
+    "www.qr-pass-manager.com",
+    "qr-pass-manager-jet.vercel.app",
+    "localhost",
+    "127.0.0.1",
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
