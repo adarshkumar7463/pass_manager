@@ -76,6 +76,30 @@
     font-size: 12px !important;
     font-weight: 500 !important;
   }
+
+  /* PRINT SPECIFIC STYLES */
+  @media print {
+    body * {
+      visibility: hidden;
+      background: none !important;
+    }
+    .public-page.landscape, .pass-card.landscape-layout, .pass-card.landscape-layout * {
+      visibility: visible;
+    }
+    .pass-card.landscape-layout {
+      position: absolute;
+      left: 0;
+      top: 0;
+      margin: 0 !important;
+      box-shadow: none !important;
+      border: 1px solid #eee !important;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+    .pass-actions, .pass-disclaimer, .toast-msg {
+      display: none !important;
+    }
+  }
 </style>
 
 /* Responsiveness */
@@ -103,18 +127,21 @@ margin: 20px 0 !important;
     class="pass-card pass-combo landscape-layout {% if pass_obj.status == 'EXPIRED' %}pass-expired{% endif %}">
 
     <!-- Left Side: Visual Header -->
-    <div class="pass-card-header">
+    <div class="pass-card-header" style="background: linear-gradient(145deg, #2a0845 0%, #6441A5 100%); position: relative; overflow: hidden;">
+      <!-- Decorative circle overlay -->
+      <div style="position: absolute; top: -50px; left: -50px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%); border-radius: 50%;"></div>
+      <div style="position: absolute; bottom: -80px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 70%); border-radius: 50%;"></div>
       <div class="pass-header-text">
         <div class="pass-sidebar-top">
           <i class="fas fa-ticket-alt"></i> COMBO PASS
         </div>
 
         <div class="pass-sidebar-middle">
-          <div class="pass-template-name">{{ pass_obj.template.name|upper }}</div>
+          <div class="pass-template-name" style="text-shadow: 0 0 15px rgba(255,255,255,0.4); font-size: 28px;">{{ pass_obj.template.name|upper }}</div>
           {% if pass_obj.template.discount_percent > 0 %}
-          <div class="pass-discount-ad" style="margin: 0 auto;">
-            <div class="ad-badge" style="font-size: 9px; letter-spacing: 1px;">SPECIAL OFFER</div>
-            <div class="ad-value" style="font-size: 20px; color: var(--green);">{{ pass_obj.template.discount_percent|floatformat:0 }}% OFF</div>
+          <div class="pass-discount-ad" style="margin: 15px auto 0; background: linear-gradient(135deg, #00e676, #1de9b6); padding: 8px 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 230, 118, 0.4); transform: rotate(-2deg); border: 1px solid rgba(255,255,255,0.5);">
+            <div class="ad-badge" style="font-size: 10px; letter-spacing: 2px; color: #004d40; font-weight: 900;">🔥 SPECIAL OFFER</div>
+            <div class="ad-value" style="font-size: 22px; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">{{ pass_obj.template.discount_percent|floatformat:0 }}% OFF</div>
           </div>
           {% endif %}
         </div>
@@ -128,51 +155,34 @@ margin: 20px 0 !important;
     <!-- Right Side: Main Content -->
     <div class="pass-main-content">
 
-      <!-- Top Row: ID and Status -->
-      <div class="pass-top-row">
+      <!-- Top Row: ID & Price -->
+      <div class="pass-top-row" style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div class="pass-id-section">
           <div class="pass-id-label">PASS ID</div>
           <div class="pass-id-value">{{ pass_obj.unique_id }}</div>
         </div>
-        <div class="pass-status-row">
-          <div class="pass-status-badge pass-status-{{ pass_obj.status|lower }}">
-            {% if pass_obj.status == 'ACTIVE' %}
-            <i class="fas fa-check-circle"></i> {{ pass_obj.visits_done }}/{{ pass_obj.total_locations }} VISITED
-            {% elif pass_obj.status == 'EXPIRED' %}
-            <i class="fas fa-trophy"></i> COMPLETED
-            {% else %}
-            {{ pass_obj.status }}
-            {% endif %}
-          </div>
+        <div class="pass-price-badge" style="background: rgba(22, 101, 52, 0.1); border: 1.5px solid #166534; color: #166534; padding: 6px 15px; border-radius: 30px; font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; gap: 5px;">
+           <span style="font-size: 0.7rem; opacity: 0.8;">TOTAL</span> ₹{{ pass_obj.template.total_price|floatformat:0 }}
         </div>
       </div>
 
       <div class="pass-body-split">
         <!-- Details Column -->
         <div class="pass-details-side">
-          <div class="pass-detail-item">
+          <div class="pass-detail-item" style="margin-bottom: 15px;">
             <span class="pd-label">HOLDER</span>
-            <span class="pd-value" style="font-size: 15px; color: var(--pub-accent);">{{ pass_obj.full_name }}</span>
+            <span class="pd-value" style="display: block; border-bottom: 2px dashed #d0cce6; width: 100%; height: 25px; margin-top: 5px;"></span>
           </div>
 
           <div class="pass-details-grid" style="padding: 0; display: block;">
-            <div class="pass-detail-item" style="margin-bottom: 8px;">
+            <div class="pass-detail-item" style="margin-bottom: 20px;">
               <span class="pd-label"><i class="fas fa-phone"></i> PHONE</span>
-              <span class="pd-value">{{ pass_obj.phone }}</span>
+              <span class="pd-value" style="display: block; border-bottom: 2px dashed #d0cce6; width: 100%; height: 25px; margin-top: 5px;"></span>
             </div>
             <div class="pass-detail-item">
               <span class="pd-label"><i class="fas fa-calendar-alt"></i> ISSUED</span>
-              <span class="pd-value">{{ pass_obj.created_at|date:"d M Y" }}</span>
+              <span class="pd-value" style="font-weight: 700; color: var(--pub-accent);">{{ pass_obj.created_at|date:"d M Y" }}</span>
             </div>
-          </div>
-
-          <!-- Progress bar -->
-          <div class="pass-progress-section">
-            <div class="pass-progress-bar">
-              <div class="pass-progress-fill" style="width: {{ pass_obj.progress_percent }}%"></div>
-            </div>
-            <div class="pass-progress-text" style="font-size: 10px; margin-top: 4px;">{{ pass_obj.progress_percent }}%
-              COMPLETE</div>
           </div>
 
           <!-- Payment note (Box Design) -->
@@ -181,7 +191,7 @@ margin: 20px 0 !important;
             style="margin-top: 25px; padding: 12px 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #166534; font-size: 12px; font-weight: 500;">
             <div
               style="width: 24px; height: 24px; background: #22c55e; border-radius: 50%; display: grid; place-items: center; color: #fff; flex-shrink: 0;">
-              <i class="fas fa-info" style="font-size: 10px;"></i>
+              <i class="fas fa-info" style="font-size: 8px;"></i>
             </div>
             <div style="flex: 1; line-height: 1.4;">
               <span style="font-size: 10px; display: block; opacity: 0.8; margin-bottom: 2px;">💳 PAYMENT NOTE</span>
@@ -192,7 +202,7 @@ margin: 20px 0 !important;
         </div>
 
         <!-- QRs Column -->
-        <div class="pass-qr-side">
+        <div class="pass-qr-side" style="justify-content: flex-start; padding-top: 0px;">
           <div class="pass-locations-title">
             <i class="fas fa-qrcode"></i> SHOW QR AT COUNTER
           </div>
@@ -209,7 +219,7 @@ margin: 20px 0 !important;
               <div class="loc-qr-name">{{ visit.location.name }}</div>
               <div class="loc-qr-image-wrap">
                 <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?data={{ request.scheme }}://{{ request.get_host }}/scan/{{ pass_obj.unique_id }}/{{ visit.location.prefix }}/&size=150x150"
+                  src="https://api.qrserver.com/v1/create-qr-code/?data={{ request.scheme }}://{{ request.get_host }}/scan/{{ pass_obj.unique_id }}/{{ visit.location.prefix }}/&size=120x120&ecc=M&margin=1"
                   alt="QR" class="loc-qr-img" crossorigin="anonymous">
                 {% if visit.status == 'DONE' %}
                 <div class="loc-qr-overlay"><i class="fas fa-check-circle"></i></div>
@@ -240,7 +250,7 @@ margin: 20px 0 !important;
   <!-- Actions -->
   <div class="pass-actions">
     <button onclick="downloadAsImage()" class="pass-action-btn btn-dl" id="dl-btn">
-      <i class="fas fa-download"></i> Save Image
+      <i class="fas fa-download"></i> Save Pass
     </button>
     <button onclick="shareWhatsApp()" class="pass-action-btn btn-wa">
       <i class="fab fa-whatsapp"></i> Share
@@ -347,5 +357,14 @@ margin: 20px 0 !important;
   setTimeout(autoResizeText, 50);
   setTimeout(autoResizeText, 300);
   setTimeout(autoResizeText, 1000);
+
+  {% if is_print %}
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      window.print();
+      // Optional: window.close();
+    }, 500);
+  });
+  {% endif %}
 </script>
 {% endblock %}

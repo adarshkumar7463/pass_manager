@@ -18,14 +18,15 @@
         <i class="fas fa-chart-pie"></i><span>Dashboard</span>
       </a>
       <a href="{% url 'passes:template_list' %}" class="nav-item {% if active == 'templates' %}active{% endif %}">
-        <i class="fas fa-layer-group"></i><span>Templates</span>
+        <i class="fas fa-layer-group"></i><span>Pass Batches</span>
       </a>
-      <a href="{% url 'passes:template_create' %}" class="nav-item {% if active == 'create_template' %}active{% endif %}">
-        <i class="fas fa-plus-circle"></i><span>New Template</span>
+      <a href="{% url 'passes:template_create' %}"
+        class="nav-item {% if active == 'create_template' %}active{% endif %}">
+        <i class="fas fa-plus-circle"></i><span>Generate Pass</span>
       </a>
-      <a href="{% url 'passes:passes_list' %}" class="nav-item {% if active == 'passes' %}active{% endif %}">
+      <!-- <a href="{% url 'passes:passes_list' %}" class="nav-item {% if active == 'passes' %}active{% endif %}">
         <i class="fas fa-id-card"></i><span>All Passes</span>
-      </a>
+      </a> -->
       <a href="{% url 'passes:validate' %}" class="nav-item {% if active == 'validate' %}active{% endif %}">
         <i class="fas fa-qrcode"></i><span>Validate Pass</span>
       </a>
@@ -60,7 +61,14 @@
     <header class="admin-header">
       <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
       <div class="header-title">{% block page_title %}Dashboard{% endblock %}</div>
-      <div class="header-actions">{% block header_actions %}{% endblock %}</div>
+      <div class="header-actions">
+        {% if not user.is_superuser and active != 'validate' %}
+        <a href="{% url 'passes:validate' %}" class="btn-primary-sm" style="margin-right: 15px;">
+          <i class="fas fa-qrcode"></i> Validate Pass
+        </a>
+        {% endif %}
+        {% block header_actions %}{% endblock %}
+      </div>
     </header>
 
     <div class="admin-content">
@@ -68,7 +76,8 @@
       <div class="messages-container">
         {% for message in messages %}
         <div class="alert alert-{{ message.tags }}">
-          <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+          <i
+            class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
           {{ message }}
           <button onclick="this.parentElement.remove()" class="alert-close">&times;</button>
         </div>

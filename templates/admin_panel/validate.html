@@ -30,7 +30,7 @@
 
     <div id="tab-scanner" class="vtab-content" style="display:none">
       <div class="scanner-area">
-        <video id="scanner-video" autoplay playsinline style="display:none"></video>
+        <div id="scanner-container" style="width: 100%; max-width: 400px; margin: 0 auto; overflow: hidden; border-radius: 12px; background: #000;"></div>
         <p class="scanner-hint">Scan any location QR on the pass</p>
         <button onclick="startScanner()" class="btn-primary" id="start-scan-btn"><i class="fas fa-camera"></i> Start Camera</button>
         <button onclick="stopScanner()" class="btn-secondary" id="stop-scan-btn" style="display:none"><i class="fas fa-stop"></i> Stop</button>
@@ -54,6 +54,8 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script>
 let html5QrScanner = null;
+const allowedPrefixes = {{ user_prefixes|safe }};
+const isSuperuser = {% if request.user.is_superuser %}true{% else %}false{% endif %};
 
 function showTab(tab, evt) {
   document.querySelectorAll('.vtab').forEach(b => b.classList.remove('active'));
@@ -114,6 +116,7 @@ function showResult(d) {
       <div class="prc-id">${d.unique_id}</div>
       <div class="prc-row"><span>Name</span><strong>${d.full_name}</strong></div>
       <div class="prc-row"><span>Phone</span><strong>${d.phone}</strong></div>
+      <div class="prc-row"><span>Price</span><strong style="color: #166534; font-size: 1.1rem;">₹${d.price}</strong></div>
       <div class="prc-row"><span>Progress</span><strong>${d.visits_done}/${d.total_locations} visits (${d.progress}%)</strong></div>
       <div class="prc-row"><span>Generated</span><strong>${d.created_at}</strong></div>
     </div>
@@ -133,13 +136,19 @@ function showError(msg) {
 
 function onScanSuccess(decodedText) {
   console.log("Code scanned:", decodedText);
-  stopScanner();
   
   try {
     if (decodedText.includes('/scan/')) {
       const afterScan = decodedText.split('/scan/')[1];
       const parts = afterScan.split('/').filter(p => p.length > 0);
       if (parts.length >= 2) {
+        const scannedPrefix = parts[1];
+        if (!isSuperuser && !allowedPrefixes.includes(scannedPrefix)) {
+          showError(`Access Denied: This QR is for location "${scannedPrefix}". You only have access to: ${allowedPrefixes.join(', ')}`);
+          stopScanner();
+          return;
+        }
+        stopScanner();
         window.location.href = `/scan/${parts[0]}/${parts[1]}/`;
         return;
       }
@@ -148,31 +157,62 @@ function onScanSuccess(decodedText) {
       const afterPass = decodedText.split('/pass/')[1];
       const passId = afterPass.split('/').filter(p => p.length > 0)[0];
       if (passId) {
+        stopScanner();
         lookupPass(passId);
         return;
       }
     }
     if (decodedText.length >= 8 && !decodedText.includes('://')) {
+      stopScanner();
       lookupPass(decodedText.toUpperCase());
       return;
     }
   } catch (e) {
     console.error(e);
   }
-  showError('Unknown QR code format');
+  
+  // If we reach here, it's not a recognized pass QR
+  document.getElementById('result-empty').style.display = 'none';
+  document.getElementById('result-panel').style.display = 'flex';
+  document.getElementById('result-status').innerHTML = `
+    <div class="status-badge status-error"><i class="fas fa-times-circle"></i><span>PASS NOT DETECTED</span></div>`;
+  document.getElementById('result-details').innerHTML = `<p class="error-msg">The scanned code is not a valid pass or is from an unknown source.</p>`;
+  stopScanner();
 }
 
 function startScanner() {
-  document.getElementById('scanner-video').style.display = 'block';
   document.getElementById('start-scan-btn').style.display = 'none';
   document.getElementById('stop-scan-btn').style.display = '';
 
-  html5QrScanner = new Html5Qrcode("scanner-video");
-  html5QrScanner.start(
-    { facingMode: "environment" }, 
-    { fps: 10, qrbox: { width: 250, height: 250 } },
-    onScanSuccess
-  ).catch(err => {
+  // Use verbose: true for debugging if needed
+  html5QrScanner = new Html5Qrcode("scanner-container", { verbose: false });
+  
+  const config = { 
+    fps: 20, 
+    qrbox: { width: 250, height: 250 },
+    aspectRatio: 1.0,
+    experimentalFeatures: {
+      useBarCodeDetectorIfSupported: true
+    }
+  };
+
+  html5QrScanner.start({ facingMode: "environment" }, config, onScanSuccess)
+  .then(() => {
+    const container = document.getElementById('scanner-container');
+    const line = document.createElement('div');
+    line.id = "scan-line";
+    line.style = "position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(124, 77, 255, 0.8); box-shadow: 0 0 8px rgba(124, 77, 255, 0.8); z-index: 5; animation: scanAnim 2s linear infinite;";
+    container.style.position = "relative";
+    container.appendChild(line);
+    
+    if (!document.getElementById('scan-styles')) {
+      const style = document.createElement('style');
+      style.id = 'scan-styles';
+      style.innerHTML = "@keyframes scanAnim { 0% { top: 0; } 100% { top: 100%; } }";
+      document.head.appendChild(style);
+    }
+  })
+  .catch(err => {
     console.error("Camera error:", err);
     showError("Camera access denied or error: " + err);
     stopScanner();
@@ -182,11 +222,10 @@ function startScanner() {
 function stopScanner() {
   if (html5QrScanner) {
     html5QrScanner.stop().then(() => {
-      html5QrScanner.clear();
+      // html5QrScanner.clear(); // Not needed for Html5Qrcode
       html5QrScanner = null;
     }).catch(err => console.error(err));
   }
-  document.getElementById('scanner-video').style.display = 'none';
   document.getElementById('start-scan-btn').style.display = '';
   document.getElementById('stop-scan-btn').style.display = 'none';
 }

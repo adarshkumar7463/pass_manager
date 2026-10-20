@@ -25,7 +25,12 @@
           <input type="text" name="prefix" value="{{ location.prefix|default:'' }}" placeholder="e.g. A, B, MG" maxlength="5"
             style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"
             {% if location %}readonly{% endif %} required>
-          <span class="form-hint">Used in pass IDs: <strong>A-001</strong>, <strong>A-002</strong>…</span>
+          <span class="form-hint">Used in pass IDs: <strong>A-001</strong></span>
+        </div>
+        <div class="form-group">
+          <label>Price (₹) <span class="req">*</span></label>
+          <input type="number" name="price" value="{{ location.price|default:'0.00' }}" step="0.01" min="0" placeholder="0.00" required>
+          <span class="form-hint">Default price for this location.</span>
         </div>
       </div>
 

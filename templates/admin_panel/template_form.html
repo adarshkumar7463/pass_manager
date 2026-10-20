@@ -1,6 +1,6 @@
 {% extends "base/admin_base.html" %}
-{% block title %}Create Template{% endblock %}
-{% block page_title %}Create Pass Template{% endblock %}
+{% block title %}Generate Passes{% endblock %}
+{% block page_title %}Generate Passes{% endblock %}
 
 {% block content %}
 <div class="form-page">
@@ -8,8 +8,8 @@
     <div class="form-card-header">
       <i class="fas fa-layer-group"></i>
       <div>
-        <h2>Create Pass Template</h2>
-        <p>Create a pass template for a location. A QR code will be generated that visitors can scan to register.</p>
+        <h2>Generate Passes</h2>
+        <p>Generate multiple passes for a location instantly.</p>
       </div>
     </div>
 
@@ -17,8 +17,8 @@
       {% csrf_token %}
 
       <div class="form-group">
-        <label>Template Name</label>
-        <input type="text" name="name" placeholder="e.g. Weekend Pass, Entry Pass" value="{{ form_data.name|default:'' }}" required>
+        <label>Batch Name / Pass Group Name</label>
+        <input type="text" name="name" placeholder="e.g. Group A, Weekend Passes" value="{{ form_data.name|default:'GRCC ENTRY PASS' }}" required>
       </div>
 
       <div class="form-group">
@@ -39,19 +39,13 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label>Total Price (₹) <span class="req">*</span></label>
-          <input type="number" name="total_price" min="0" step="0.01" placeholder="0.00" required>
+          <label>Quantity of Passes <span class="req">*</span></label>
+          <input type="number" name="quantity" min="1" max="100" value="1" required>
         </div>
         <div class="form-group">
-          <label>Discount (%)</label>
-          <input type="number" name="discount_percent" min="0" max="100" step="0.01" value="0">
+          <label>Offer Percentage (Discount)</label>
+          <input type="number" name="discount_percent" min="0" max="100" value="0">
         </div>
-      </div>
-
-      <div class="form-group">
-        <label>Access Limit</label>
-        <input type="number" name="access_limit" min="1" placeholder="Leave blank for unlimited">
-        <span class="form-hint">Max passes that can be generated</span>
       </div>
 
       <div class="form-group">
@@ -67,7 +61,7 @@
       <div class="form-actions">
         <a href="{% url 'passes:dashboard' %}" class="btn-secondary">Cancel</a>
         {% if locations %}
-          <button type="submit" class="btn-primary"><i class="fas fa-qrcode"></i> Create Template & QR</button>
+          <button type="submit" class="btn-primary"><i class="fas fa-qrcode"></i> Generate Passes</button>
         {% endif %}
       </div>
     </form>

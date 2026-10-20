@@ -9,6 +9,7 @@ class Location(models.Model):
     description = models.TextField(blank=True)
     address = models.TextField(blank=True)
     prefix = models.CharField(max_length=5, unique=True, help_text='Used for pass IDs e.g. A, B, LOC1')
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
