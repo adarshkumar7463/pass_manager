@@ -21,7 +21,18 @@ class Command(BaseCommand):
             return
 
         user_model = get_user_model()
-        if user_model.objects.filter(username=username).exists():
+        user = user_model.objects.filter(username=username).first()
+        reset_password = os.environ.get('BOOTSTRAP_ADMIN_RESET_PASSWORD', '').strip().lower() in {
+            '1', 'true', 'yes', 'on'
+        }
+        if user:
+            if reset_password:
+                user.set_password(password)
+                user.is_staff = True
+                user.is_superuser = True
+                user.save(update_fields=['password', 'is_staff', 'is_superuser'])
+                self.stdout.write(self.style.SUCCESS(f'Password reset for superuser {username!r}.'))
+                return
             self.stdout.write(f'Superuser {username!r} already exists; leaving it unchanged.')
             return
 
