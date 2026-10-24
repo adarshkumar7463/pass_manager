@@ -123,8 +123,17 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').is_dir() else []
-# Keep stable static URLs so a stale or missing manifest cannot crash page
-# rendering. WhiteNoise still serves the collected and compressed assets.
+# Explicitly configure Django's current storage API. Keep stable static URLs
+# so rendering does not depend on a generated manifest entry.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
+# Compatibility for Django versions that still read the legacy setting.
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 MEDIA_URL = '/media/'
