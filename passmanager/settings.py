@@ -3,16 +3,27 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-production-xK9mP2nL8qR5')
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'True').strip().lower() in {'1', 'true', 'yes', 'on'}
 
 ALLOWED_HOSTS = [
-    "qr-pass-manager.com",
-    "www.qr-pass-manager.com",
-    "qr-pass-manager-jet.vercel.app",
-    ".onrender.com",
-    "localhost",
-    "127.0.0.1",
+    host.strip()
+    for host in os.environ.get(
+        'ALLOWED_HOSTS',
+        'qr-pass-manager.com,www.qr-pass-manager.com,qr-pass-manager-jet.vercel.app,.onrender.com,localhost,127.0.0.1',
+    ).split(',')
+    if host.strip()
 ]
+
+# Render terminates HTTPS at its proxy. Trust the public URL for Django's
+# CSRF origin checks when forms are submitted through that proxy.
+RENDER_EXTERNAL_URL = os.environ.get('RENDER_EXTERNAL_URL', '').rstrip('/')
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip().rstrip('/')
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+if RENDER_EXTERNAL_URL:
+    CSRF_TRUSTED_ORIGINS.append(RENDER_EXTERNAL_URL)
 
 
 INSTALLED_APPS = [
@@ -94,7 +105,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').is_dir() else []
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
@@ -107,7 +118,8 @@ LOGOUT_REDIRECT_URL = '/admin-panel/login/'
 
 RATE_LIMIT_REQUESTS = int(os.environ.get('RATE_LIMIT_REQUESTS', '5'))
 RATE_LIMIT_WINDOW   = int(os.environ.get('RATE_LIMIT_WINDOW', '3600'))
-SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000').rstrip('/')
+SITE_URL = os.environ.get('RENDER_EXTERNAL_URL') or os.environ.get('SITE_URL', 'http://localhost:8000')
+SITE_URL = SITE_URL.rstrip('/')
 
 SESSION_COOKIE_AGE = 86400
 SESSION_SAVE_EVERY_REQUEST = True
