@@ -8,11 +8,11 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
-        value: False
+        value: "false"
       - key: ALLOWED_HOSTS
         value: .onrender.com
       - key: SITE_URL
-        value: https://passmanager.onrender.com # Update this after first deployment
+        value: https://qr-pass-manager-bxgq.onrender.com
       - key: DATABASE_URL
         fromDatabase:
           name: passmanager-db

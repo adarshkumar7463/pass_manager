@@ -70,6 +70,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'passmanager.wsgi.application'
 
+# Send Django 500 tracebacks to the service logs so runtime failures are
+# visible alongside Render's request access logs.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
+
 import os
 import dj_database_url
 
